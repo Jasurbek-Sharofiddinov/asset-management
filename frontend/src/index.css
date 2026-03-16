@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+/* AssetVault Design Tokens */
+@theme {
+  --color-vault-black: #0A0A0F;
+  --color-vault-surface: #12121A;
+  --color-vault-border: #1E1E2E;
+  --color-vault-muted: #2A2A3E;
+  --color-vault-amber: #F59E0B;
+  --color-vault-amber-dim: #92400E;
+  --color-vault-blue: #3B82F6;
+  --color-vault-green: #10B981;
+  --color-vault-yellow: #FBBF24;
+  --color-vault-red: #EF4444;
+  --color-vault-gray: #6B7280;
+  --color-vault-text: #E5E7EB;
+  --color-vault-muted-text: #9CA3AF;
+  --font-display: 'Syne', system-ui, sans-serif;
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* Global styles */
+@layer base {
+  html {
+    background-color: #0A0A0F;
+    color: #E5E7EB;
+  }
+  body {
+    margin: 0;
+    background-color: #0A0A0F;
+    color: #E5E7EB;
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  }
+  #root {
+    min-height: 100vh;
+    background-color: #0A0A0F;
+  }
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #12121A;
+}
+::-webkit-scrollbar-thumb {
+  background: #2A2A3E;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3A3A4E;
+}

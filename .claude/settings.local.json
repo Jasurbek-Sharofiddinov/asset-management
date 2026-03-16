@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx:*)",
+      "Bash(cd:*)",
+      "Bash(where postgres:*)",
+      "Bash(where redis-server:*)",
+      "Bash(\"C:/Program Files/PostgreSQL/17/bin/psql.exe\" -U postgres -c \"SELECT 1\" 2>&1)",
+      "Bash(PGPASSWORD=12345 \"C:/Program Files/PostgreSQL/17/bin/psql.exe\" -U postgres -c \"SELECT 1\" 2>&1)",
+      "Bash(PGPASSWORD=12345 \"C:/Program Files/PostgreSQL/17/bin/psql.exe\" -U postgres -c \"CREATE DATABASE assetvault;\" 2>&1)",
+      "Bash(venv/Scripts/python.exe --version 2>&1)",
+      "Bash(./venv/Scripts/python.exe --version 2>&1)",
+      "Bash(./venv/Scripts/pip.exe install:*)",
+      "Bash(../venv/Scripts/uvicorn.exe app.main:app --reload --port 8000 2>&1)",
+      "Bash(curl:*)",
+      "Bash(cat:*)"
+    ]
+  }
+}
