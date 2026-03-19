@@ -20,6 +20,7 @@ import { analyticsApi } from '../lib/api'
 import { Card, CardHeader, CardTitle } from '../components/ui/Card'
 import { PageLoader } from '../components/ui/LoadingSpinner'
 import { formatCurrency, formatDate } from '../lib/utils'
+import { useLanguageStore } from '../stores/languageStore'
 
 const STATUS_COLORS: Record<string, string> = {
   REGISTERED: '#6B7280',
@@ -43,6 +44,8 @@ const tooltipStyle = {
 }
 
 export default function AnalyticsPage() {
+  const { t } = useLanguageStore()
+
   const { data: valueOverTime, isLoading: l1 } = useQuery({
     queryKey: ['analytics', 'value-over-time'],
     queryFn: analyticsApi.getValueOverTime,
@@ -112,7 +115,7 @@ export default function AnalyticsPage() {
         >
           <Card>
             <CardHeader>
-              <CardTitle>Asset Value Over Time</CardTitle>
+              <CardTitle>{t('analytics.assetValueOverTime')}</CardTitle>
             </CardHeader>
             {valueOverTime && (valueOverTime as any[]).length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
@@ -141,7 +144,7 @@ export default function AnalyticsPage() {
               </ResponsiveContainer>
             ) : (
               <div className="h-[300px] flex items-center justify-center text-vault-muted-text text-sm">
-                No data available
+                {t('analytics.noData')}
               </div>
             )}
           </Card>
@@ -155,7 +158,7 @@ export default function AnalyticsPage() {
         >
           <Card>
             <CardHeader>
-              <CardTitle>Status Breakdown Over Time</CardTitle>
+              <CardTitle>{t('analytics.statusBreakdown')}</CardTitle>
             </CardHeader>
             {statusOverTime.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
@@ -187,7 +190,7 @@ export default function AnalyticsPage() {
               </ResponsiveContainer>
             ) : (
               <div className="h-[300px] flex items-center justify-center text-vault-muted-text text-sm">
-                No data available
+                {t('analytics.noData')}
               </div>
             )}
           </Card>
@@ -201,7 +204,7 @@ export default function AnalyticsPage() {
         >
           <Card>
             <CardHeader>
-              <CardTitle>Department Allocation</CardTitle>
+              <CardTitle>{t('analytics.departmentAllocation')}</CardTitle>
             </CardHeader>
             {deptAllocation.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
@@ -230,7 +233,7 @@ export default function AnalyticsPage() {
               </ResponsiveContainer>
             ) : (
               <div className="h-[300px] flex items-center justify-center text-vault-muted-text text-sm">
-                No data available
+                {t('analytics.noData')}
               </div>
             )}
           </Card>
@@ -244,7 +247,7 @@ export default function AnalyticsPage() {
         >
           <Card>
             <CardHeader>
-              <CardTitle>Age Distribution</CardTitle>
+              <CardTitle>{t('analytics.ageDistribution')}</CardTitle>
             </CardHeader>
             {ageDistribution.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
@@ -265,7 +268,7 @@ export default function AnalyticsPage() {
               </ResponsiveContainer>
             ) : (
               <div className="h-[300px] flex items-center justify-center text-vault-muted-text text-sm">
-                No data available
+                {t('analytics.noData')}
               </div>
             )}
           </Card>
@@ -282,10 +285,10 @@ export default function AnalyticsPage() {
               <CardTitle>
                 <div className="flex items-center gap-2">
                   <Wrench className="h-4 w-4 text-vault-yellow" />
-                  Repair Frequency
+                  {t('analytics.repairFrequency')}
                 </div>
               </CardTitle>
-              <span className="text-xs text-vault-muted-text">Top 10</span>
+              <span className="text-xs text-vault-muted-text">{t('analytics.top10')}</span>
             </CardHeader>
             {repairFrequency.length > 0 ? (
               <div className="overflow-x-auto">
@@ -293,16 +296,16 @@ export default function AnalyticsPage() {
                   <thead>
                     <tr className="border-b border-vault-border">
                       <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-vault-muted-text uppercase tracking-wider">
-                        Asset
+                        {t('analytics.colAsset')}
                       </th>
                       <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-vault-muted-text uppercase tracking-wider">
-                        Serial
+                        {t('analytics.colSerial')}
                       </th>
                       <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-vault-muted-text uppercase tracking-wider">
-                        Category
+                        {t('analytics.colCategory')}
                       </th>
                       <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-vault-muted-text uppercase tracking-wider">
-                        Count
+                        {t('analytics.colCount')}
                       </th>
                     </tr>
                   </thead>
@@ -341,7 +344,7 @@ export default function AnalyticsPage() {
               </div>
             ) : (
               <div className="py-12 text-center text-vault-muted-text text-sm">
-                No repair data available
+                {t('analytics.noRepairData')}
               </div>
             )}
           </Card>
@@ -358,10 +361,10 @@ export default function AnalyticsPage() {
               <CardTitle>
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-vault-amber" />
-                  Warranty Expiring
+                  {t('analytics.warrantyExpiring')}
                 </div>
               </CardTitle>
-              <span className="text-xs text-vault-muted-text">Next 90 days</span>
+              <span className="text-xs text-vault-muted-text">{t('analytics.next90days')}</span>
             </CardHeader>
             {warrantyExpiring.length > 0 ? (
               <div className="space-y-1.5 max-h-[340px] overflow-y-auto">
@@ -410,7 +413,7 @@ export default function AnalyticsPage() {
               </div>
             ) : (
               <div className="py-12 text-center text-vault-muted-text text-sm">
-                No warranties expiring in the next 90 days
+                {t('analytics.noWarranties')}
               </div>
             )}
           </Card>

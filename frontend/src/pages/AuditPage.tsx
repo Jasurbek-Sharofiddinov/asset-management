@@ -15,6 +15,7 @@ import { ActionBadge } from '../components/ui/Badge'
 import { PageLoader } from '../components/ui/LoadingSpinner'
 import { useToast } from '../components/ui/Toast'
 import { useAuthStore } from '../stores/authStore'
+import { useLanguageStore } from '../stores/languageStore'
 import { formatDateTime } from '../lib/utils'
 
 const entityTypes = ['ASSET', 'ASSIGNMENT', 'USER']
@@ -29,6 +30,7 @@ const actionTypes = [
 
 export default function AuditPage() {
   const { user } = useAuthStore()
+  const { t } = useLanguageStore()
   const toast = useToast()
   const [expandedRow, setExpandedRow] = useState<number | null>(null)
   const [showFilters, setShowFilters] = useState(false)
@@ -61,11 +63,11 @@ export default function AuditPage() {
       link.download = `audit-log-${new Date().toISOString().split('T')[0]}.csv`
       link.click()
       URL.revokeObjectURL(url)
-      toast.success('Audit log exported successfully')
+      toast.success(t('audit.exportSuccess'))
     } catch {
-      toast.error('Failed to export audit log')
+      toast.error(t('audit.exportError'))
     }
-  }, [toast])
+  }, [toast, t])
 
   const clearFilters = () => {
     setSelectedEntity('')
@@ -86,26 +88,26 @@ export default function AuditPage() {
     return (
       <div className="grid grid-cols-2 gap-4 mt-3">
         <div>
-          <p className="text-xs font-medium text-vault-muted-text mb-2">Old Values</p>
+          <p className="text-xs font-medium text-vault-muted-text mb-2">{t('audit.oldValues')}</p>
           <div className="p-3 rounded-lg bg-vault-red/5 border border-vault-red/10">
             {oldVal ? (
               <pre className="text-xs font-[family-name:var(--font-mono)] text-vault-text whitespace-pre-wrap break-all">
                 {JSON.stringify(oldVal, null, 2)}
               </pre>
             ) : (
-              <p className="text-xs text-vault-muted-text">N/A</p>
+              <p className="text-xs text-vault-muted-text">{t('audit.na')}</p>
             )}
           </div>
         </div>
         <div>
-          <p className="text-xs font-medium text-vault-muted-text mb-2">New Values</p>
+          <p className="text-xs font-medium text-vault-muted-text mb-2">{t('audit.newValues')}</p>
           <div className="p-3 rounded-lg bg-vault-green/5 border border-vault-green/10">
             {newVal ? (
               <pre className="text-xs font-[family-name:var(--font-mono)] text-vault-text whitespace-pre-wrap break-all">
                 {JSON.stringify(newVal, null, 2)}
               </pre>
             ) : (
-              <p className="text-xs text-vault-muted-text">N/A</p>
+              <p className="text-xs text-vault-muted-text">{t('audit.na')}</p>
             )}
           </div>
         </div>
@@ -124,7 +126,7 @@ export default function AuditPage() {
             onClick={() => setShowFilters(!showFilters)}
           >
             <Filter className="h-4 w-4" />
-            Filters
+            {t('audit.filters')}
             {hasActiveFilters && (
               <span className="ml-1 w-2 h-2 rounded-full bg-vault-amber" />
             )}
@@ -133,7 +135,7 @@ export default function AuditPage() {
         {canExport && (
           <Button variant="secondary" size="sm" onClick={handleExportCSV}>
             <Download className="h-4 w-4" />
-            Export CSV
+            {t('audit.exportCSV')}
           </Button>
         )}
       </div>
@@ -147,46 +149,46 @@ export default function AuditPage() {
           className="bg-vault-surface border border-vault-border rounded-xl p-4"
         >
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-vault-text">Filters</h3>
+            <h3 className="text-sm font-medium text-vault-text">{t('audit.filters')}</h3>
             {hasActiveFilters && (
               <button
                 onClick={clearFilters}
                 className="flex items-center gap-1 text-xs text-vault-muted-text hover:text-vault-text transition-colors"
               >
                 <X className="h-3 w-3" />
-                Clear all
+                {t('audit.clearAll')}
               </button>
             )}
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-xs text-vault-muted-text mb-1">Entity Type</label>
+              <label className="block text-xs text-vault-muted-text mb-1">{t('audit.entityType')}</label>
               <select
                 value={selectedEntity}
                 onChange={(e) => { setSelectedEntity(e.target.value); setPage(1) }}
                 className="w-full px-3 py-2 bg-vault-black border border-vault-border rounded-lg text-sm text-vault-text appearance-none focus:outline-none focus:ring-2 focus:ring-vault-amber/40"
               >
-                <option value="">All</option>
-                {entityTypes.map((t) => (
-                  <option key={t} value={t}>{t}</option>
+                <option value="">{t('audit.all')}</option>
+                {entityTypes.map((tp) => (
+                  <option key={tp} value={tp}>{tp}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-vault-muted-text mb-1">Action</label>
+              <label className="block text-xs text-vault-muted-text mb-1">{t('audit.action')}</label>
               <select
                 value={selectedAction}
                 onChange={(e) => { setSelectedAction(e.target.value); setPage(1) }}
                 className="w-full px-3 py-2 bg-vault-black border border-vault-border rounded-lg text-sm text-vault-text appearance-none focus:outline-none focus:ring-2 focus:ring-vault-amber/40"
               >
-                <option value="">All</option>
+                <option value="">{t('audit.all')}</option>
                 {actionTypes.map((a) => (
                   <option key={a} value={a}>{a.replace('_', ' ')}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="block text-xs text-vault-muted-text mb-1">Start Date</label>
+              <label className="block text-xs text-vault-muted-text mb-1">{t('audit.startDate')}</label>
               <input
                 type="date"
                 value={startDate}
@@ -195,7 +197,7 @@ export default function AuditPage() {
               />
             </div>
             <div>
-              <label className="block text-xs text-vault-muted-text mb-1">End Date</label>
+              <label className="block text-xs text-vault-muted-text mb-1">{t('audit.endDate')}</label>
               <input
                 type="date"
                 value={endDate}
@@ -214,22 +216,22 @@ export default function AuditPage() {
             <tr className="bg-vault-muted/30 border-b border-vault-border">
               <th className="w-8 px-3 py-3" />
               <th className="px-4 py-3 text-left text-xs font-semibold text-vault-muted-text uppercase tracking-wider">
-                Timestamp
+                {t('audit.colTimestamp')}
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-vault-muted-text uppercase tracking-wider">
-                Entity Type
+                {t('audit.colEntityType')}
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-vault-muted-text uppercase tracking-wider">
-                Action
+                {t('audit.colAction')}
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-vault-muted-text uppercase tracking-wider">
-                Actor
+                {t('audit.colActor')}
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-vault-muted-text uppercase tracking-wider">
-                Entity ID
+                {t('audit.colEntityId')}
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-vault-muted-text uppercase tracking-wider">
-                Reason
+                {t('audit.colReason')}
               </th>
             </tr>
           </thead>
@@ -293,7 +295,7 @@ export default function AuditPage() {
                   colSpan={7}
                   className="px-4 py-12 text-center text-vault-muted-text"
                 >
-                  No audit logs found
+                  {t('audit.noLogs')}
                 </td>
               </tr>
             )}

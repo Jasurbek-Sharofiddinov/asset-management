@@ -10,6 +10,7 @@ import { Button } from '../components/ui/Button'
 import { StatusBadge, CategoryBadge } from '../components/ui/Badge'
 import { AssetForm } from '../components/assets/AssetForm'
 import { formatDate, formatCurrency } from '../lib/utils'
+import { useLanguageStore } from '../stores/languageStore'
 import type { Asset, AssetStatus, AssetCategory } from '../types'
 
 const statusOptions: AssetStatus[] = [
@@ -26,6 +27,7 @@ const categoryOptions: AssetCategory[] = [
 
 export default function AssetsPage() {
   const navigate = useNavigate()
+  const { t } = useLanguageStore()
   const [showForm, setShowForm] = useState(false)
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null)
   const [showFilters, setShowFilters] = useState(false)
@@ -91,7 +93,7 @@ export default function AssetsPage() {
   const columns = [
     {
       key: 'name',
-      header: 'Name',
+      header: t('assets.colName'),
       sortable: true,
       render: (item: Asset) => (
         <div>
@@ -106,13 +108,13 @@ export default function AssetsPage() {
     },
     {
       key: 'category',
-      header: 'Category',
+      header: t('assets.colCategory'),
       sortable: true,
       render: (item: Asset) => <CategoryBadge category={item.category} />,
     },
     {
       key: 'serial_number',
-      header: 'Serial',
+      header: t('assets.colSerial'),
       render: (item: Asset) => (
         <span className="font-[family-name:var(--font-mono)] text-[13px] text-vault-muted-text">
           {item.serial_number}
@@ -121,13 +123,13 @@ export default function AssetsPage() {
     },
     {
       key: 'status',
-      header: 'Status',
+      header: t('assets.colStatus'),
       sortable: true,
       render: (item: Asset) => <StatusBadge status={item.status} />,
     },
     {
       key: 'assigned_to',
-      header: 'Assigned To',
+      header: t('assets.colAssignedTo'),
       render: (item: any) => (
         <span className="text-sm text-vault-text">
           {item.assigned_to || '-'}
@@ -136,7 +138,7 @@ export default function AssetsPage() {
     },
     {
       key: 'purchase_date',
-      header: 'Purchase Date',
+      header: t('assets.colPurchaseDate'),
       sortable: true,
       render: (item: Asset) => (
         <span className="text-sm text-vault-muted-text">
@@ -146,7 +148,7 @@ export default function AssetsPage() {
     },
     {
       key: 'purchase_price',
-      header: 'Value',
+      header: t('assets.colValue'),
       sortable: true,
       render: (item: Asset) => (
         <span className="text-sm text-vault-text">
@@ -168,7 +170,7 @@ export default function AssetsPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-vault-muted-text" />
             <input
               type="text"
-              placeholder="Search by name, serial, brand..."
+              placeholder={t('assets.searchPlaceholder')}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -182,7 +184,7 @@ export default function AssetsPage() {
             onClick={() => setShowFilters(!showFilters)}
           >
             <Filter className="h-4 w-4" />
-            Filters
+            {t('assets.filters')}
             {hasActiveFilters && (
               <span className="ml-1 w-5 h-5 rounded-full bg-vault-amber text-vault-black text-[10px] flex items-center justify-center font-bold">
                 {selectedStatuses.length + selectedCategories.length + (selectedBranchId ? 1 : 0)}
@@ -193,7 +195,7 @@ export default function AssetsPage() {
 
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4" />
-          Add Asset
+          {t('assets.addAsset')}
         </Button>
       </div>
 
@@ -206,21 +208,21 @@ export default function AssetsPage() {
           className="bg-vault-surface border border-vault-border rounded-xl p-4"
         >
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-medium text-vault-text">Filters</h3>
+            <h3 className="text-sm font-medium text-vault-text">{t('assets.filters')}</h3>
             {hasActiveFilters && (
               <button
                 onClick={clearFilters}
                 className="flex items-center gap-1 text-xs text-vault-muted-text hover:text-vault-text transition-colors"
               >
                 <X className="h-3 w-3" />
-                Clear all
+                {t('assets.clearAll')}
               </button>
             )}
           </div>
 
           <div className="space-y-3">
             <div>
-              <p className="text-xs text-vault-muted-text mb-2">Status</p>
+              <p className="text-xs text-vault-muted-text mb-2">{t('assets.status')}</p>
               <div className="flex flex-wrap gap-2">
                 {statusOptions.map((status) => (
                   <button
@@ -239,7 +241,7 @@ export default function AssetsPage() {
             </div>
 
             <div>
-              <p className="text-xs text-vault-muted-text mb-2">Category</p>
+              <p className="text-xs text-vault-muted-text mb-2">{t('assets.category')}</p>
               <div className="flex flex-wrap gap-2">
                 {categoryOptions.map((cat) => (
                   <button
@@ -258,7 +260,7 @@ export default function AssetsPage() {
             </div>
 
             <div>
-              <p className="text-xs text-vault-muted-text mb-2">Branch</p>
+              <p className="text-xs text-vault-muted-text mb-2">{t('assets.branch')}</p>
               <select
                 value={selectedBranchId}
                 onChange={(e) => {
@@ -267,7 +269,7 @@ export default function AssetsPage() {
                 }}
                 className="px-3 py-1.5 bg-vault-surface border border-vault-border rounded-lg text-xs text-vault-text focus:outline-none focus:ring-2 focus:ring-vault-amber/30 focus:border-vault-amber/40 transition-all"
               >
-                <option value="">All Branches</option>
+                <option value="">{t('assets.allBranches')}</option>
                 {branches?.map((branch) => (
                   <option key={branch.id} value={branch.id}>
                     {branch.name}
@@ -288,7 +290,7 @@ export default function AssetsPage() {
         sortBy={params.sort_by}
         sortOrder={params.sort_order}
         onSort={handleSort}
-        emptyMessage="No assets found. Create your first asset to get started."
+        emptyMessage={t('assets.emptyMessage')}
       />
 
       {/* Pagination */}

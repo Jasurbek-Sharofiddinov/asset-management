@@ -5,30 +5,40 @@ import {
   ScanLine, Settings, LogOut, Hexagon, Menu, X,
 } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
+import { useLanguageStore } from '../../stores/languageStore'
 import { cn } from '../../lib/utils'
 import { useState } from 'react'
+import type { TranslationKey } from '../../i18n/translations'
+import type { Locale } from '../../i18n/translations'
 
 const navGroups = [
-  { label: 'Home', items: [
-    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { labelKey: 'nav.home' as TranslationKey, items: [
+    { path: '/dashboard', labelKey: 'nav.dashboard' as TranslationKey, icon: LayoutDashboard },
   ]},
-  { label: 'Assets', items: [
-    { path: '/assets', label: 'Asset List', icon: Package },
+  { labelKey: 'nav.assets' as TranslationKey, items: [
+    { path: '/assets', labelKey: 'nav.assetList' as TranslationKey, icon: Package },
   ]},
-  { label: 'Operations', items: [
-    { path: '/scanner', label: 'QR Scanner', icon: ScanLine },
+  { labelKey: 'nav.operations' as TranslationKey, items: [
+    { path: '/scanner', labelKey: 'nav.qrScanner' as TranslationKey, icon: ScanLine },
   ]},
-  { label: 'Reporting', items: [
-    { path: '/analytics', label: 'Analytics', icon: BarChart3 },
-    { path: '/audit', label: 'Audit Log', icon: ScrollText, roles: ['ADMIN', 'AUDITOR', 'MANAGER'] },
+  { labelKey: 'nav.reporting' as TranslationKey, items: [
+    { path: '/analytics', labelKey: 'nav.analytics' as TranslationKey, icon: BarChart3 },
+    { path: '/audit', labelKey: 'nav.auditLog' as TranslationKey, icon: ScrollText, roles: ['ADMIN', 'AUDITOR', 'MANAGER'] },
   ]},
-  { label: 'System', items: [
-    { path: '/settings', label: 'Settings', icon: Settings, roles: ['ADMIN', 'MANAGER'] },
+  { labelKey: 'nav.system' as TranslationKey, items: [
+    { path: '/settings', labelKey: 'nav.settings' as TranslationKey, icon: Settings, roles: ['ADMIN', 'MANAGER'] },
   ]},
+]
+
+const locales: { code: Locale; label: string }[] = [
+  { code: 'en', label: 'EN' },
+  { code: 'ru', label: 'RU' },
+  { code: 'uz', label: 'UZ' },
 ]
 
 export function Sidebar() {
   const { user, logout } = useAuthStore()
+  const { t, locale, setLocale } = useLanguageStore()
   const navigate = useNavigate()
   const [isMobileOpen, setIsMobileOpen] = useState(false)
 
@@ -54,8 +64,8 @@ export function Sidebar() {
           )
           if (!visibleItems.length) return null
           return (
-            <div key={group.label}>
-              <p className="px-3 mb-1 text-[9px] font-bold uppercase tracking-[2px] text-vault-disabled">{group.label}</p>
+            <div key={group.labelKey}>
+              <p className="px-3 mb-1 text-[9px] font-bold uppercase tracking-[2px] text-vault-disabled">{t(group.labelKey)}</p>
               {visibleItems.map((item) => (
                 <NavLink
                   key={item.path}
@@ -78,7 +88,7 @@ export function Sidebar() {
                         />
                       )}
                       <item.icon className="h-[16px] w-[16px]" />
-                      <span>{item.label}</span>
+                      <span>{t(item.labelKey)}</span>
                     </>
                   )}
                 </NavLink>
@@ -87,6 +97,26 @@ export function Sidebar() {
           )
         })}
       </nav>
+
+      {/* Language Switcher */}
+      <div className="px-4 py-2 border-t border-vault-border/50">
+        <div className="flex items-center gap-1">
+          {locales.map((loc) => (
+            <button
+              key={loc.code}
+              onClick={() => setLocale(loc.code)}
+              className={cn(
+                'flex-1 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all',
+                locale === loc.code
+                  ? 'bg-vault-amber/15 text-vault-amber border border-vault-amber/30'
+                  : 'text-vault-muted-text hover:text-vault-text hover:bg-vault-muted/20 border border-transparent'
+              )}
+            >
+              {loc.label}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* User */}
       <div className="px-4 py-4 border-t border-vault-border/50">
@@ -101,7 +131,7 @@ export function Sidebar() {
         </div>
         <button onClick={handleLogout}
           className="flex items-center gap-2 w-full px-3 py-1.5 rounded-lg text-[12px] text-vault-muted-text hover:text-vault-red hover:bg-vault-red/[0.06] transition-all">
-          <LogOut className="h-3.5 w-3.5" /><span>Sign Out</span>
+          <LogOut className="h-3.5 w-3.5" /><span>{t('nav.signOut')}</span>
         </button>
       </div>
     </div>

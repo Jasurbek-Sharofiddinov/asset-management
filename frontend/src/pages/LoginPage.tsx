@@ -3,11 +3,21 @@ import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Shield, Eye, EyeOff } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
+import { useLanguageStore } from '../stores/languageStore'
 import { Button } from '../components/ui/Button'
+import { cn } from '../lib/utils'
+import type { Locale } from '../i18n/translations'
+
+const locales: { code: Locale; label: string }[] = [
+  { code: 'en', label: 'EN' },
+  { code: 'ru', label: 'RU' },
+  { code: 'uz', label: 'UZ' },
+]
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const { login, isLoading, error, clearError } = useAuthStore()
+  const { t, locale, setLocale } = useLanguageStore()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -24,7 +34,25 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-vault-black flex items-center justify-center p-4">
+    <div className="min-h-screen bg-vault-black flex items-center justify-center p-4 relative">
+      {/* Language Switcher — top-right */}
+      <div className="absolute top-4 right-4 z-10 flex items-center gap-1">
+        {locales.map((loc) => (
+          <button
+            key={loc.code}
+            onClick={() => setLocale(loc.code)}
+            className={cn(
+              'px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider transition-all',
+              locale === loc.code
+                ? 'bg-vault-amber/15 text-vault-amber border border-vault-amber/30'
+                : 'text-vault-muted-text hover:text-vault-text hover:bg-vault-muted/20 border border-transparent'
+            )}
+          >
+            {loc.label}
+          </button>
+        ))}
+      </div>
+
       {/* Subtle radial glow */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-vault-amber/[0.03] blur-[100px]" />
@@ -50,7 +78,7 @@ export default function LoginPage() {
             Asset<span className="text-vault-amber">Vault</span>
           </h1>
           <p className="text-sm text-vault-muted-text mt-1">
-            Bank Office Asset Management
+            {t('login.tagline')}
           </p>
         </motion.div>
 
@@ -62,10 +90,10 @@ export default function LoginPage() {
           className="bg-vault-surface border border-vault-border rounded-2xl p-8 shadow-[0_0_0_1px_rgba(245,158,11,0.08),0_4px_24px_rgba(0,0,0,0.6)]"
         >
           <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-vault-text mb-1">
-            Welcome back
+            {t('login.welcomeBack')}
           </h2>
           <p className="text-sm text-vault-muted-text mb-6">
-            Sign in to access the vault
+            {t('login.signInPrompt')}
           </p>
 
           {error && (
@@ -84,14 +112,14 @@ export default function LoginPage() {
                 htmlFor="email"
                 className="block text-sm font-medium text-vault-text mb-1.5"
               >
-                Email address
+                {t('login.emailLabel')}
               </label>
               <input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@assetvault.com"
+                placeholder={t('login.emailPlaceholder')}
                 required
                 className="w-full px-3 py-2.5 bg-vault-black border border-vault-border rounded-lg text-vault-text text-sm placeholder:text-vault-muted-text/50 focus:outline-none focus:ring-2 focus:ring-vault-amber/40 focus:border-vault-amber/50 transition-all"
               />
@@ -102,7 +130,7 @@ export default function LoginPage() {
                 htmlFor="password"
                 className="block text-sm font-medium text-vault-text mb-1.5"
               >
-                Password
+                {t('login.passwordLabel')}
               </label>
               <div className="relative">
                 <input
@@ -110,7 +138,7 @@ export default function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
+                  placeholder={t('login.passwordPlaceholder')}
                   required
                   className="w-full px-3 py-2.5 pr-10 bg-vault-black border border-vault-border rounded-lg text-vault-text text-sm placeholder:text-vault-muted-text/50 focus:outline-none focus:ring-2 focus:ring-vault-amber/40 focus:border-vault-amber/50 transition-all"
                 />
@@ -134,7 +162,7 @@ export default function LoginPage() {
               className="w-full py-2.5"
               size="lg"
             >
-              Sign In
+              {t('login.signIn')}
             </Button>
           </form>
         </motion.div>
@@ -145,7 +173,7 @@ export default function LoginPage() {
           transition={{ delay: 0.5, duration: 0.5 }}
           className="text-center text-xs text-vault-muted-text mt-6"
         >
-          Secured by AssetVault Banking Solutions
+          {t('login.secured')}
         </motion.p>
       </motion.div>
     </div>

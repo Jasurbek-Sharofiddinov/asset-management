@@ -28,15 +28,12 @@ import { ActionBadge } from '../components/ui/Badge'
 import { PageLoader } from '../components/ui/LoadingSpinner'
 import { formatCurrency, formatDateTime } from '../lib/utils'
 import { useEffect, useState, useRef } from 'react'
+import { useLanguageStore } from '../stores/languageStore'
 
 /* ── Colors ── */
 const STATUS_COLORS: Record<string, string> = {
   REGISTERED: '#8E8EA8', ASSIGNED: '#22C55E', IN_REPAIR: '#F97316',
   LOST: '#EF4444', WRITTEN_OFF: '#4B5563',
-}
-const STATUS_LABELS: Record<string, string> = {
-  REGISTERED: 'Registered', ASSIGNED: 'Assigned', IN_REPAIR: 'In Repair',
-  LOST: 'Lost', WRITTEN_OFF: 'Written Off',
 }
 const CAT_COLORS = ['#F5A623', '#22C55E', '#3B82F6', '#F87171', '#A78BFA', '#EC4899', '#2DD4BF', '#FB923C', '#94A3B8']
 const DEPT_COLORS: Record<string, string> = {
@@ -226,6 +223,7 @@ function SquarifiedTreemap({ data }: { data: { name: string; count: number }[]; 
 }
 
 export default function DashboardPage() {
+  const { t } = useLanguageStore()
   const [selectedBranchId, setSelectedBranchId] = useState<string>('')
 
   const { data: branches } = useQuery({
@@ -255,12 +253,17 @@ export default function DashboardPage() {
   const assigned = s['ASSIGNED'] || 0
   const pct = total > 0 ? Math.round((assigned / total) * 100) : 0
 
+  const STATUS_LABELS: Record<string, string> = {
+    REGISTERED: t('status.registered'), ASSIGNED: t('status.assigned'), IN_REPAIR: t('status.inRepair'),
+    LOST: t('status.lost'), WRITTEN_OFF: t('status.writtenOff'),
+  }
+
   const kpis = [
-    { label: 'Total Assets', value: total, sub: formatCurrency(totalVal), icon: Package, color: '#F5A623', bg: 'rgba(245,166,35,0.12)' },
-    { label: 'Assigned', value: assigned, sub: `${pct}% utilization`, icon: UserCheck, color: '#22C55E', bg: 'rgba(34,197,94,0.12)', trend: pct },
-    { label: 'In Repair', value: s['IN_REPAIR'] || 0, sub: 'Pending service', icon: Wrench, color: '#F97316', bg: 'rgba(249,115,22,0.12)' },
-    { label: 'Lost', value: s['LOST'] || 0, sub: 'Under investigation', icon: AlertTriangle, color: '#EF4444', bg: 'rgba(239,68,68,0.12)' },
-    { label: 'Written Off', value: s['WRITTEN_OFF'] || 0, sub: 'Decommissioned', icon: XCircle, color: '#4B5563', bg: 'rgba(75,85,99,0.12)' },
+    { label: t('kpi.totalAssets'), value: total, sub: formatCurrency(totalVal), icon: Package, color: '#F5A623', bg: 'rgba(245,166,35,0.12)' },
+    { label: t('kpi.assigned'), value: assigned, sub: `${pct}% ${t('kpi.utilization')}`, icon: UserCheck, color: '#22C55E', bg: 'rgba(34,197,94,0.12)', trend: pct },
+    { label: t('kpi.inRepair'), value: s['IN_REPAIR'] || 0, sub: t('kpi.pendingService'), icon: Wrench, color: '#F97316', bg: 'rgba(249,115,22,0.12)' },
+    { label: t('kpi.lost'), value: s['LOST'] || 0, sub: t('kpi.underInvestigation'), icon: AlertTriangle, color: '#EF4444', bg: 'rgba(239,68,68,0.12)' },
+    { label: t('kpi.writtenOff'), value: s['WRITTEN_OFF'] || 0, sub: t('kpi.decommissioned'), icon: XCircle, color: '#4B5563', bg: 'rgba(75,85,99,0.12)' },
   ]
 
   const statusData = Object.entries(s).filter(([, v]) => (v as number) > 0)
@@ -276,13 +279,13 @@ export default function DashboardPage() {
 
       {/* ── Branch Filter ── */}
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-vault-text" style={{ fontFamily: "'Syne', sans-serif" }}>Dashboard</h1>
+        <h1 className="text-lg font-semibold text-vault-text" style={{ fontFamily: "'Syne', sans-serif" }}>{t('dashboard.title')}</h1>
         <select
           value={selectedBranchId}
           onChange={(e) => setSelectedBranchId(e.target.value)}
           className="px-3 py-1.5 bg-vault-surface border border-vault-border rounded-lg text-xs text-vault-text focus:outline-none focus:ring-2 focus:ring-vault-amber/30 focus:border-vault-amber/40 transition-all"
         >
-          <option value="">All Branches</option>
+          <option value="">{t('dashboard.allBranches')}</option>
           {branches?.map((branch) => (
             <option key={branch.id} value={branch.id}>
               {branch.name}
@@ -323,7 +326,7 @@ export default function DashboardPage() {
         {/* Status Distribution */}
         <motion.div variants={stagger.item} className="lg:col-span-2">
           <Card className="h-full">
-            <CardHeader><CardTitle>Status Distribution</CardTitle>
+            <CardHeader><CardTitle>{t('dashboard.statusDistribution')}</CardTitle>
               <span className="text-[18px] font-medium text-vault-amber" style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace" }}>{total}</span>
             </CardHeader>
             {statusData.length > 0 && (
@@ -335,7 +338,7 @@ export default function DashboardPage() {
                     </Pie></PieChart>
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                    <span className="text-[9px] text-vault-muted-text uppercase tracking-[1.5px]">Active</span>
+                    <span className="text-[9px] text-vault-muted-text uppercase tracking-[1.5px]">{t('dashboard.active')}</span>
                     <span className="text-base font-semibold text-vault-text" style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace" }}>{pct}%</span>
                   </div>
                 </div>
@@ -365,8 +368,8 @@ export default function DashboardPage() {
         {/* Category Breakdown — Squarified Treemap */}
         <motion.div variants={stagger.item} className="lg:col-span-3">
           <Card className="h-full">
-            <CardHeader><CardTitle>Asset Categories</CardTitle>
-              <span className="text-[11px] text-vault-muted-text">{Object.keys(cat).length} categories &middot; {total} assets</span>
+            <CardHeader><CardTitle>{t('dashboard.assetCategories')}</CardTitle>
+              <span className="text-[11px] text-vault-muted-text">{Object.keys(cat).length} {t('dashboard.categories')} &middot; {total} {t('dashboard.assets')}</span>
             </CardHeader>
             {catData.length > 0 && <SquarifiedTreemap data={catData} total={total} />}
           </Card>
@@ -380,9 +383,9 @@ export default function DashboardPage() {
         <motion.div variants={stagger.item}>
           <Card className="h-full">
             <CardHeader>
-              <CardTitle><div className="flex items-center gap-1.5"><Sparkles className="h-3.5 w-3.5 text-vault-amber" />AI Insights</div></CardTitle>
+              <CardTitle><div className="flex items-center gap-1.5"><Sparkles className="h-3.5 w-3.5 text-vault-amber" />{t('ai.insights')}</div></CardTitle>
               <button onClick={() => refetchInsights()} className="text-[10px] uppercase tracking-wider text-vault-muted-text hover:text-vault-amber transition-colors flex items-center gap-1">
-                <RefreshCw className={`h-3 w-3 ${insightsLoading ? 'animate-spin' : ''}`} />Generate
+                <RefreshCw className={`h-3 w-3 ${insightsLoading ? 'animate-spin' : ''}`} />{t('ai.generate')}
               </button>
             </CardHeader>
 
@@ -394,7 +397,7 @@ export default function DashboardPage() {
                   <div>
                     <div className="flex items-center gap-1.5 mb-2">
                       <TrendingUp className="h-3 w-3 text-vault-green" />
-                      <span className="text-[10px] font-bold uppercase tracking-[1.5px] text-vault-muted-text">Highlights</span>
+                      <span className="text-[10px] font-bold uppercase tracking-[1.5px] text-vault-muted-text">{t('ai.highlights')}</span>
                     </div>
                     <div className="space-y-1.5">
                       {insights.highlights.map((h: string, i: number) => (
@@ -411,7 +414,7 @@ export default function DashboardPage() {
                   <div>
                     <div className="flex items-center gap-1.5 mb-2">
                       <ShieldAlert className="h-3 w-3 text-vault-red" />
-                      <span className="text-[10px] font-bold uppercase tracking-[1.5px] text-vault-muted-text">Risks</span>
+                      <span className="text-[10px] font-bold uppercase tracking-[1.5px] text-vault-muted-text">{t('ai.risks')}</span>
                     </div>
                     <div className="space-y-1.5">
                       {insights.risks.map((r: string, i: number) => (
@@ -428,7 +431,7 @@ export default function DashboardPage() {
                   <div>
                     <div className="flex items-center gap-1.5 mb-2">
                       <Lightbulb className="h-3 w-3 text-vault-amber" />
-                      <span className="text-[10px] font-bold uppercase tracking-[1.5px] text-vault-muted-text">Actions</span>
+                      <span className="text-[10px] font-bold uppercase tracking-[1.5px] text-vault-muted-text">{t('ai.actions')}</span>
                     </div>
                     <div className="space-y-1.5">
                       {insights.recommendations.map((r: string, i: number) => (
@@ -443,14 +446,14 @@ export default function DashboardPage() {
               </div>
             ) : insights?.error ? (
               <div className="py-8 text-center">
-                <p className="text-[12px] text-vault-red mb-1">Could not generate insights</p>
-                <p className="text-[11px] text-vault-muted-text">Check your Grok API key in backend .env</p>
+                <p className="text-[12px] text-vault-red mb-1">{t('ai.insightsError')}</p>
+                <p className="text-[11px] text-vault-muted-text">{t('ai.checkApiKey')}</p>
               </div>
             ) : (
               <div className="py-10 text-center">
                 <Sparkles className="h-8 w-8 text-vault-amber/20 mx-auto mb-3" />
-                <p className="text-[13px] text-vault-muted-text mb-1">AI-powered portfolio analysis</p>
-                <p className="text-[11px] text-vault-disabled">Click "Generate" to analyze your asset data</p>
+                <p className="text-[13px] text-vault-muted-text mb-1">{t('ai.insightsPlaceholder')}</p>
+                <p className="text-[11px] text-vault-disabled">{t('ai.insightsClickGenerate')}</p>
               </div>
             )}
           </Card>
@@ -460,9 +463,9 @@ export default function DashboardPage() {
         <motion.div variants={stagger.item}>
           <Card className="h-full">
             <CardHeader>
-              <CardTitle><div className="flex items-center gap-1.5"><Brain className="h-3.5 w-3.5 text-purple-400" />AI Predictions</div></CardTitle>
+              <CardTitle><div className="flex items-center gap-1.5"><Brain className="h-3.5 w-3.5 text-purple-400" />{t('ai.predictions')}</div></CardTitle>
               <button onClick={() => refetchPredictions()} className="text-[10px] uppercase tracking-wider text-vault-muted-text hover:text-purple-400 transition-colors flex items-center gap-1">
-                <RefreshCw className={`h-3 w-3 ${predictionsLoading ? 'animate-spin' : ''}`} />Generate
+                <RefreshCw className={`h-3 w-3 ${predictionsLoading ? 'animate-spin' : ''}`} />{t('ai.generate')}
               </button>
             </CardHeader>
 
@@ -473,7 +476,7 @@ export default function DashboardPage() {
                   <div>
                     <div className="flex items-center gap-1.5 mb-2">
                       <ShoppingCart className="h-3 w-3 text-vault-amber" />
-                      <span className="text-[10px] font-bold uppercase tracking-[1.5px] text-vault-muted-text">Predicted Purchases</span>
+                      <span className="text-[10px] font-bold uppercase tracking-[1.5px] text-vault-muted-text">{t('ai.predictedPurchases')}</span>
                     </div>
                     <div className="space-y-2">
                       {predictions.predicted_purchases.map((p, i) => {
@@ -512,7 +515,7 @@ export default function DashboardPage() {
                   <div>
                     <div className="flex items-center gap-1.5 mb-2">
                       <Calendar className="h-3 w-3 text-vault-blue" />
-                      <span className="text-[10px] font-bold uppercase tracking-[1.5px] text-vault-muted-text">Maintenance Forecast</span>
+                      <span className="text-[10px] font-bold uppercase tracking-[1.5px] text-vault-muted-text">{t('ai.maintenanceForecast')}</span>
                     </div>
                     <div className="space-y-1.5">
                       {predictions.maintenance_forecast.map((m, i) => (
@@ -522,7 +525,7 @@ export default function DashboardPage() {
                             <span className="text-vault-text">{m.description}</span>
                             <div className="flex items-center gap-3 mt-0.5">
                               <span className="text-[10px] text-vault-muted-text">{m.timeline}</span>
-                              <span className="text-[10px] text-vault-muted-text" style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace" }}>{m.affected_count} assets</span>
+                              <span className="text-[10px] text-vault-muted-text" style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace" }}>{m.affected_count} {t('ai.assetsLabel')}</span>
                             </div>
                           </div>
                         </div>
@@ -536,7 +539,7 @@ export default function DashboardPage() {
                   <div>
                     <div className="flex items-center gap-1.5 mb-2">
                       <DollarSign className="h-3 w-3 text-vault-green" />
-                      <span className="text-[10px] font-bold uppercase tracking-[1.5px] text-vault-muted-text">Budget Outlook</span>
+                      <span className="text-[10px] font-bold uppercase tracking-[1.5px] text-vault-muted-text">{t('ai.budgetOutlook')}</span>
                     </div>
                     <p className="text-[12px] text-vault-muted-text leading-relaxed px-3 py-2 rounded-lg bg-vault-muted/10 border border-vault-border/50">
                       {predictions.budget_outlook}
@@ -546,14 +549,14 @@ export default function DashboardPage() {
               </div>
             ) : predictions?.error ? (
               <div className="py-8 text-center">
-                <p className="text-[12px] text-vault-red mb-1">Could not generate predictions</p>
-                <p className="text-[11px] text-vault-muted-text">Check your Grok API key in backend .env</p>
+                <p className="text-[12px] text-vault-red mb-1">{t('ai.predictionsError')}</p>
+                <p className="text-[11px] text-vault-muted-text">{t('ai.checkApiKey')}</p>
               </div>
             ) : (
               <div className="py-10 text-center">
                 <Brain className="h-8 w-8 text-purple-400/20 mx-auto mb-3" />
-                <p className="text-[13px] text-vault-muted-text mb-1">AI-powered asset predictions</p>
-                <p className="text-[11px] text-vault-disabled">Click "Generate" to forecast purchases & maintenance</p>
+                <p className="text-[13px] text-vault-muted-text mb-1">{t('ai.predictionsPlaceholder')}</p>
+                <p className="text-[11px] text-vault-disabled">{t('ai.predictionsClickGenerate')}</p>
               </div>
             )}
           </Card>
@@ -567,10 +570,10 @@ export default function DashboardPage() {
         <motion.div variants={stagger.item}>
           <Card className="h-full">
             <CardHeader>
-              <CardTitle>Live Activity</CardTitle>
+              <CardTitle>{t('dashboard.liveActivity')}</CardTitle>
               <div className="flex items-center gap-1.5">
                 <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-vault-green opacity-75" /><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-vault-green" /></span>
-                <span className="text-[9px] text-vault-muted-text uppercase tracking-[1.5px]">Real-time</span>
+                <span className="text-[9px] text-vault-muted-text uppercase tracking-[1.5px]">{t('dashboard.realTime')}</span>
               </div>
             </CardHeader>
             <div className="space-y-0.5 max-h-[340px] overflow-y-auto">
@@ -587,7 +590,7 @@ export default function DashboardPage() {
                   <span className="text-[10px] text-vault-muted-text tabular-nums whitespace-nowrap"><RelativeTime date={log.occurred_at} /></span>
                 </div>
               )) : (
-                <div className="py-12 text-center text-[13px] text-vault-muted-text">No recent activity</div>
+                <div className="py-12 text-center text-[13px] text-vault-muted-text">{t('dashboard.noRecentActivity')}</div>
               )}
             </div>
           </Card>
@@ -596,7 +599,7 @@ export default function DashboardPage() {
         {/* Departments */}
         <motion.div variants={stagger.item}>
           <Card className="h-full">
-            <CardHeader><CardTitle>Departments</CardTitle><span className="text-[11px] text-vault-muted-text">{depts.length} active</span></CardHeader>
+            <CardHeader><CardTitle>{t('dashboard.departments')}</CardTitle><span className="text-[11px] text-vault-muted-text">{depts.length} {t('dashboard.activeDepartments')}</span></CardHeader>
             <div className="space-y-3 max-h-[340px] overflow-y-auto">
               {depts.map((d: any, i: number) => {
                 const p = Math.round(((d.asset_count || 0) / maxDept) * 100)
