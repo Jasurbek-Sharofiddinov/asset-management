@@ -13,7 +13,9 @@
       "Bash(./venv/Scripts/pip.exe install:*)",
       "Bash(../venv/Scripts/uvicorn.exe app.main:app --reload --port 8000 2>&1)",
       "Bash(curl:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(npm run:*)",
+      "Bash(PGPASSWORD=12345 \"C:/Program Files/PostgreSQL/17/bin/psql.exe\" -U postgres -d assetvault -c \"DROP SCHEMA public CASCADE; CREATE SCHEMA public;\" 2>&1)"
     ]
   }
 }

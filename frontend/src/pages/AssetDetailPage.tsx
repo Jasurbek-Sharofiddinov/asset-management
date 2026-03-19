@@ -43,7 +43,7 @@ export default function AssetDetailPage() {
   const [statusChangeReason, setStatusChangeReason] = useState('')
   const [showStatusModal, setShowStatusModal] = useState<AssetStatus | null>(null)
 
-  const assetId = Number(id)
+  const assetId = id || ''
 
   const { data: asset, isLoading } = useQuery({
     queryKey: ['asset', assetId],
@@ -243,7 +243,7 @@ export default function AssetDetailPage() {
                   {
                     label: 'Purchase Price',
                     value: asset.purchase_price
-                      ? formatCurrency(asset.purchase_price)
+                      ? formatCurrency(Number(asset.purchase_price))
                       : '-',
                     icon: DollarSign,
                   },

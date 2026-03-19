@@ -13,6 +13,14 @@ class Settings(BaseSettings):
 
     REDIS_URL: str = "redis://localhost:6379/0"
 
+    GROK_API_KEY: str = ""
+    GROK_API_URL: str = "https://api.x.ai/v1/chat/completions"
+    GROK_MODEL: str = "grok-3-mini"
+
+    GROQ_API_KEY: str = ""
+    GROQ_API_URL: str = "https://api.groq.com/openai/v1/chat/completions"
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+
     CORS_ORIGINS: List[str] = [
         "http://localhost:5173",
         "http://localhost:3000",

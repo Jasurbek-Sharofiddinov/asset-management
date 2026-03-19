@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { Plus, Filter, X, Search } from 'lucide-react'
-import { assetsApi, type AssetParams } from '../lib/api'
+import { assetsApi, referenceApi, type AssetParams } from '../lib/api'
 import { Table } from '../components/ui/Table'
 import { Pagination } from '../components/ui/Pagination'
 import { Button } from '../components/ui/Button'
@@ -20,12 +20,8 @@ const statusOptions: AssetStatus[] = [
   'WRITTEN_OFF',
 ]
 const categoryOptions: AssetCategory[] = [
-  'FURNITURE',
-  'ELECTRONICS',
-  'VEHICLE',
-  'EQUIPMENT',
-  'SOFTWARE',
-  'OTHER',
+  'IT', 'OFFICE', 'SECURITY', 'NETWORKING', 'PRINTING',
+  'SERVER', 'MOBILE', 'FURNITURE', 'OTHER',
 ]
 
 export default function AssetsPage() {
@@ -42,14 +38,21 @@ export default function AssetsPage() {
   const [searchInput, setSearchInput] = useState('')
   const [selectedStatuses, setSelectedStatuses] = useState<AssetStatus[]>([])
   const [selectedCategories, setSelectedCategories] = useState<AssetCategory[]>([])
+  const [selectedBranchId, setSelectedBranchId] = useState<string>('')
+
+  const { data: branches } = useQuery({
+    queryKey: ['branches'],
+    queryFn: referenceApi.getBranches,
+  })
 
   const { data, isLoading } = useQuery({
-    queryKey: ['assets', params, selectedStatuses, selectedCategories],
+    queryKey: ['assets', params, selectedStatuses, selectedCategories, selectedBranchId],
     queryFn: () =>
       assetsApi.getAssets({
         ...params,
         status: selectedStatuses.length === 1 ? selectedStatuses[0] : undefined,
         category: selectedCategories.length === 1 ? selectedCategories[0] : undefined,
+        branch_id: selectedBranchId || undefined,
       }),
   })
 
@@ -80,6 +83,7 @@ export default function AssetsPage() {
   const clearFilters = () => {
     setSelectedStatuses([])
     setSelectedCategories([])
+    setSelectedBranchId('')
     setSearchInput('')
     setParams({ page: 1, size: 20, sort_by: 'created_at', sort_order: 'desc' })
   }
@@ -122,11 +126,11 @@ export default function AssetsPage() {
       render: (item: Asset) => <StatusBadge status={item.status} />,
     },
     {
-      key: 'current_employee_name',
+      key: 'assigned_to',
       header: 'Assigned To',
-      render: (item: Asset) => (
+      render: (item: any) => (
         <span className="text-sm text-vault-text">
-          {item.current_employee_name || item.current_department_name || '-'}
+          {item.assigned_to || '-'}
         </span>
       ),
     },
@@ -146,13 +150,13 @@ export default function AssetsPage() {
       sortable: true,
       render: (item: Asset) => (
         <span className="text-sm text-vault-text">
-          {item.purchase_price ? formatCurrency(item.purchase_price) : '-'}
+          {item.purchase_price ? formatCurrency(Number(item.purchase_price)) : '-'}
         </span>
       ),
     },
   ]
 
-  const hasActiveFilters = selectedStatuses.length > 0 || selectedCategories.length > 0 || searchInput
+  const hasActiveFilters = selectedStatuses.length > 0 || selectedCategories.length > 0 || !!selectedBranchId || searchInput
 
   return (
     <div className="space-y-4">
@@ -181,7 +185,7 @@ export default function AssetsPage() {
             Filters
             {hasActiveFilters && (
               <span className="ml-1 w-5 h-5 rounded-full bg-vault-amber text-vault-black text-[10px] flex items-center justify-center font-bold">
-                {selectedStatuses.length + selectedCategories.length}
+                {selectedStatuses.length + selectedCategories.length + (selectedBranchId ? 1 : 0)}
               </span>
             )}
           </Button>
@@ -251,6 +255,25 @@ export default function AssetsPage() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            <div>
+              <p className="text-xs text-vault-muted-text mb-2">Branch</p>
+              <select
+                value={selectedBranchId}
+                onChange={(e) => {
+                  setSelectedBranchId(e.target.value)
+                  setParams((prev) => ({ ...prev, page: 1 }))
+                }}
+                className="px-3 py-1.5 bg-vault-surface border border-vault-border rounded-lg text-xs text-vault-text focus:outline-none focus:ring-2 focus:ring-vault-amber/30 focus:border-vault-amber/40 transition-all"
+              >
+                <option value="">All Branches</option>
+                {branches?.map((branch) => (
+                  <option key={branch.id} value={branch.id}>
+                    {branch.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </motion.div>

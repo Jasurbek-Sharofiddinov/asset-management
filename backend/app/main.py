@@ -14,7 +14,7 @@ from app.exceptions import (
     BadRequestException,
     InvalidTransitionException,
 )
-from app.routers import auth, assets, assignments, audit, analytics, reference
+from app.routers import auth, assets, assignments, audit, analytics, reference, ai
 
 
 @asynccontextmanager
@@ -49,6 +49,7 @@ app.include_router(assignments.router)
 app.include_router(audit.router)
 app.include_router(analytics.router)
 app.include_router(reference.router)
+app.include_router(ai.router)
 
 
 # ── Exception Handlers ───────────────────────────────────────────────────────

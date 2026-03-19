@@ -337,7 +337,7 @@ def seed():
         used_serials = set()
         actor_users = [admin, manager]
 
-        for i in range(150):
+        for i in range(300):
             category = random.choice(list(ASSET_TEMPLATES.keys()))
             template = random.choice(ASSET_TEMPLATES[category])
             name_base, asset_type, brand, models = template

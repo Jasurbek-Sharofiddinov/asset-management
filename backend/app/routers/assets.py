@@ -30,13 +30,14 @@ def _get_client_ip(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
-@router.get("", response_model=AssetListResponse)
+@router.get("")
 async def list_assets(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     status: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
     department_id: Optional[uuid.UUID] = Query(None),
+    branch_id: Optional[uuid.UUID] = Query(None),
     search: Optional[str] = Query(None),
     date_from: Optional[date] = Query(None),
     date_to: Optional[date] = Query(None),
@@ -45,7 +46,8 @@ async def list_assets(
 ):
     return await asset_service.get_assets(
         db, page=page, size=size, status=status, category=category,
-        department_id=department_id, search=search, date_from=date_from, date_to=date_to,
+        department_id=department_id, branch_id=branch_id, search=search,
+        date_from=date_from, date_to=date_to,
     )
 
 

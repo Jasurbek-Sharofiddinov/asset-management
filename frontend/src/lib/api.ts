@@ -80,6 +80,7 @@ export interface AssetParams {
   search?: string
   status?: string
   category?: string
+  branch_id?: string
   sort_by?: string
   sort_order?: 'asc' | 'desc'
 }
@@ -157,8 +158,8 @@ export const auditApi = {
 
 // === Analytics ===
 export const analyticsApi = {
-  getOverview: async (): Promise<AnalyticsOverview> => {
-    const { data } = await api.get('/api/analytics/overview')
+  getOverview: async (params?: { branch_id?: string }): Promise<AnalyticsOverview> => {
+    const { data } = await api.get('/api/analytics/overview', { params })
     return data
   },
   getValueOverTime: async (): Promise<ValueOverTime[]> => {
@@ -169,8 +170,8 @@ export const analyticsApi = {
     const { data } = await api.get('/api/analytics/status-over-time')
     return data
   },
-  getDepartmentAllocation: async (): Promise<DepartmentAllocation[]> => {
-    const { data } = await api.get('/api/analytics/department-allocation')
+  getDepartmentAllocation: async (params?: { branch_id?: string }): Promise<DepartmentAllocation[]> => {
+    const { data } = await api.get('/api/analytics/department-allocation', { params })
     return data
   },
   getAgeDistribution: async (): Promise<AgeDistribution[]> => {
@@ -211,6 +212,52 @@ export const referenceApi = {
   },
   createBranch: async (branchData: Partial<Branch>): Promise<Branch> => {
     const { data } = await api.post('/api/branches', branchData)
+    return data
+  },
+}
+
+// === AI ===
+export const aiApi = {
+  recommendCategory: async (params: {
+    name: string
+    brand?: string
+    model?: string
+    asset_type?: string
+    description?: string
+  }): Promise<{ category: string; confidence: number; reason: string }> => {
+    const { data } = await api.post('/api/ai/recommend-category', null, { params })
+    return data
+  },
+  getInsights: async (): Promise<{
+    summary: string
+    highlights: string[]
+    risks: string[]
+    recommendations: string[]
+    data_snapshot?: any
+    error?: string
+  }> => {
+    const { data } = await api.get('/api/ai/insights')
+    return data
+  },
+  getPredictions: async (): Promise<{
+    predicted_purchases: Array<{
+      category: string
+      quantity: number
+      reason: string
+      urgency: string
+      estimated_budget: number
+    }>
+    maintenance_forecast: Array<{
+      description: string
+      timeline: string
+      affected_count: number
+    }>
+    staffing_impact: string
+    budget_outlook: string
+    based_on?: any
+    error?: string
+  }> => {
+    const { data } = await api.get('/api/ai/predictions')
     return data
   },
 }

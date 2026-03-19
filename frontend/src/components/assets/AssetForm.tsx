@@ -1,15 +1,15 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ChevronRight, ChevronLeft } from 'lucide-react'
+import { ChevronRight, ChevronLeft, Sparkles } from 'lucide-react'
 import { Modal } from '../ui/Modal'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
 import { Button } from '../ui/Button'
 import { useToast } from '../ui/Toast'
-import { assetsApi } from '../../lib/api'
+import { assetsApi, aiApi } from '../../lib/api'
 import type { Asset } from '../../types'
 
 const assetSchema = z.object({
@@ -51,6 +51,8 @@ export function AssetForm({ isOpen, onClose, asset }: AssetFormProps) {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<AssetFormData>({
     resolver: zodResolver(assetSchema) as any,
@@ -71,6 +73,45 @@ export function AssetForm({ isOpen, onClose, asset }: AssetFormProps) {
           category: 'ELECTRONICS',
         },
   })
+
+  /* ── AI Category Suggestion ── */
+  const [aiSuggestion, setAiSuggestion] = useState<{ category: string; confidence: number; reason: string } | null>(null)
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const watchName = watch('name')
+  const watchBrand = watch('brand')
+  const watchModel = watch('model')
+
+  const fetchAiSuggestion = useCallback(async (name: string, brand?: string, model?: string) => {
+    try {
+      const result = await aiApi.recommendCategory({ name, brand, model })
+      setAiSuggestion(result)
+    } catch {
+      // Silently ignore AI failures
+    }
+  }, [])
+
+  useEffect(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current)
+    if (!watchName || watchName.length < 3) {
+      setAiSuggestion(null)
+      return
+    }
+    debounceTimer.current = setTimeout(() => {
+      fetchAiSuggestion(watchName, watchBrand, watchModel)
+    }, 500)
+    return () => { if (debounceTimer.current) clearTimeout(debounceTimer.current) }
+  }, [watchName, watchBrand, watchModel, fetchAiSuggestion])
+
+  const applyAiSuggestion = () => {
+    if (!aiSuggestion) return
+    const upper = aiSuggestion.category.toUpperCase()
+    const validCats = categoryOptions.map(c => c.value)
+    if (validCats.includes(upper)) {
+      setValue('category', upper as AssetFormData['category'], { shouldValidate: true })
+    }
+    setAiSuggestion(null)
+  }
 
   const createMutation = useMutation({
     mutationFn: (data: AssetFormData) => assetsApi.createAsset(data as any),
@@ -100,6 +141,7 @@ export function AssetForm({ isOpen, onClose, asset }: AssetFormProps) {
   const handleClose = () => {
     reset()
     setStep(1)
+    setAiSuggestion(null)
     onClose()
   }
 
@@ -182,6 +224,20 @@ export function AssetForm({ isOpen, onClose, asset }: AssetFormProps) {
               error={errors.category?.message}
               {...register('category')}
             />
+            {aiSuggestion && (
+              <button
+                type="button"
+                onClick={applyAiSuggestion}
+                className="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-vault-amber/8 border border-vault-amber/20 hover:bg-vault-amber/15 transition-colors text-left group -mt-2"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-vault-amber flex-shrink-0" />
+                <span className="flex-1 text-[12px] text-vault-muted-text">
+                  AI suggests: <span className="text-vault-amber font-semibold">{aiSuggestion.category}</span>
+                  <span className="text-vault-muted-text" style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace" }}> ({Math.round(aiSuggestion.confidence * 100)}% confidence)</span>
+                  <span className="text-vault-muted-text/60"> — Click to apply</span>
+                </span>
+              </button>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <Input
                 label="Brand"

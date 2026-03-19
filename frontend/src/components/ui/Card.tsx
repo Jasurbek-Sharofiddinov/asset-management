@@ -8,19 +8,13 @@ interface CardProps extends HTMLAttributes<HTMLDivElement> {
 }
 
 export function Card({ children, className, hover = false, padding = 'md', ...props }: CardProps) {
-  const paddings = {
-    none: '',
-    sm: 'p-3',
-    md: 'p-5',
-    lg: 'p-6',
-  }
+  const paddings = { none: '', sm: 'p-4', md: 'p-6', lg: 'p-8' }
 
   return (
     <div
       className={cn(
-        'bg-vault-surface border border-vault-border rounded-xl',
-        'shadow-[0_0_0_1px_rgba(245,158,11,0.08),0_4px_24px_rgba(0,0,0,0.6)]',
-        hover && 'hover:border-vault-amber/20 transition-all duration-200 cursor-pointer',
+        'bg-vault-surface border border-vault-border rounded-[14px]',
+        hover && 'hover:bg-vault-elevated hover:border-vault-border-focus transition-[background,border-color] duration-150 cursor-pointer',
         paddings[padding],
         className
       )}
@@ -31,34 +25,13 @@ export function Card({ children, className, hover = false, padding = 'md', ...pr
   )
 }
 
-export function CardHeader({
-  children,
-  className,
-}: {
-  children: ReactNode
-  className?: string
-}) {
-  return (
-    <div className={cn('flex items-center justify-between mb-4', className)}>
-      {children}
-    </div>
-  )
+export function CardHeader({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn('flex items-center justify-between mb-5', className)}>{children}</div>
 }
 
-export function CardTitle({
-  children,
-  className,
-}: {
-  children: ReactNode
-  className?: string
-}) {
+export function CardTitle({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <h3
-      className={cn(
-        "font-[family-name:var(--font-display)] text-lg font-semibold text-vault-text",
-        className
-      )}
-    >
+    <h3 className={cn('text-[11px] font-bold text-vault-muted-text uppercase tracking-[2px]', className)}>
       {children}
     </h3>
   )

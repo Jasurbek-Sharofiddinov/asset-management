@@ -35,8 +35,8 @@ const CATEGORY_COLORS = [
 ]
 
 const tooltipStyle = {
-  backgroundColor: '#12121A',
-  border: '1px solid #1E1E2E',
+  backgroundColor: '#1C1C28',
+  border: '1px solid #3B3B55',
   borderRadius: '8px',
   color: '#E5E7EB',
   fontSize: '12px',

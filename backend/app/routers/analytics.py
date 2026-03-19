@@ -1,5 +1,6 @@
 from datetime import date, timedelta, datetime, timezone
 from typing import Optional
+import uuid
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select, func, case, and_, extract
@@ -16,21 +17,38 @@ router = APIRouter(prefix="/api/analytics", tags=["analytics"])
 
 @router.get("/overview")
 async def get_overview(
+    branch_id: Optional[uuid.UUID] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     base_filter = Asset.deleted_at.is_(None)
 
+    if branch_id:
+        # When filtering by branch, join through assignments
+        branch_asset_ids = (
+            select(Assignment.asset_id)
+            .where(
+                and_(
+                    Assignment.branch_id == branch_id,
+                    Assignment.is_active == True,
+                )
+            )
+            .scalar_subquery()
+        )
+        branch_filter = and_(base_filter, Asset.id.in_(branch_asset_ids))
+    else:
+        branch_filter = base_filter
+
     # Total count
     total_result = await db.execute(
-        select(func.count(Asset.id)).where(base_filter)
+        select(func.count(Asset.id)).where(branch_filter)
     )
     total = total_result.scalar() or 0
 
     # By status
     status_result = await db.execute(
         select(Asset.status, func.count(Asset.id))
-        .where(base_filter)
+        .where(branch_filter)
         .group_by(Asset.status)
     )
     by_status = {row[0]: row[1] for row in status_result.all()}
@@ -38,14 +56,14 @@ async def get_overview(
     # By category
     category_result = await db.execute(
         select(Asset.category, func.count(Asset.id))
-        .where(base_filter)
+        .where(branch_filter)
         .group_by(Asset.category)
     )
     by_category = {row[0]: row[1] for row in category_result.all()}
 
     # Total value
     value_result = await db.execute(
-        select(func.sum(Asset.purchase_price)).where(base_filter)
+        select(func.sum(Asset.purchase_price)).where(branch_filter)
     )
     total_value = float(value_result.scalar() or 0)
 
@@ -118,9 +136,17 @@ async def get_status_over_time(
 
 @router.get("/department-allocation")
 async def get_department_allocation(
+    branch_id: Optional[uuid.UUID] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    filters = [
+        Assignment.is_active == True,
+        Asset.deleted_at.is_(None),
+    ]
+    if branch_id:
+        filters.append(Assignment.branch_id == branch_id)
+
     result = await db.execute(
         select(
             Department.name,
@@ -129,12 +155,7 @@ async def get_department_allocation(
         )
         .join(Assignment, Assignment.department_id == Department.id)
         .join(Asset, Asset.id == Assignment.asset_id)
-        .where(
-            and_(
-                Assignment.is_active == True,
-                Asset.deleted_at.is_(None),
-            )
-        )
+        .where(and_(*filters))
         .group_by(Department.name)
     )
     rows = result.all()

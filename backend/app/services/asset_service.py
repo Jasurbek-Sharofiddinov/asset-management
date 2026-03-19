@@ -91,6 +91,7 @@ async def get_assets(
     status: Optional[str] = None,
     category: Optional[str] = None,
     department_id: Optional[uuid.UUID] = None,
+    branch_id: Optional[uuid.UUID] = None,
     search: Optional[str] = None,
     date_from: Optional[date] = None,
     date_to: Optional[date] = None,
@@ -132,6 +133,19 @@ async def get_assets(
         )
         filters.append(Asset.id.in_(subquery))
 
+    if branch_id:
+        branch_subquery = (
+            select(Assignment.asset_id)
+            .where(
+                and_(
+                    Assignment.branch_id == branch_id,
+                    Assignment.is_active == True,
+                )
+            )
+            .scalar_subquery()
+        )
+        filters.append(Asset.id.in_(branch_subquery))
+
     if filters:
         combined = and_(*filters)
         base_query = base_query.where(combined)
@@ -148,8 +162,36 @@ async def get_assets(
     )
     assets = result.scalars().all()
 
-    items = [AssetResponse.model_validate(a) for a in assets]
-    return AssetListResponse(items=items, total=total, page=page, pages=pages)
+    # Fetch active assignments for these assets to populate assigned_to
+    asset_ids = [a.id for a in assets]
+    assigned_map = {}
+    if asset_ids:
+        from app.models.assignment import Assignment as Asgn, Employee, Department, Branch
+        assign_result = await db.execute(
+            select(
+                Asgn.asset_id,
+                Employee.full_name.label("employee_name"),
+                Department.name.label("department_name"),
+                Branch.name.label("branch_name"),
+            )
+            .outerjoin(Employee, Asgn.employee_id == Employee.id)
+            .outerjoin(Department, Asgn.department_id == Department.id)
+            .outerjoin(Branch, Asgn.branch_id == Branch.id)
+            .where(and_(Asgn.asset_id.in_(asset_ids), Asgn.is_active == True))
+        )
+        for row in assign_result.all():
+            name = row.employee_name or row.department_name or ""
+            if row.branch_name:
+                name += f" ({row.branch_name})" if name else row.branch_name
+            assigned_map[row.asset_id] = name
+
+    items = []
+    for a in assets:
+        d = AssetResponse.model_validate(a).model_dump()
+        d["assigned_to"] = assigned_map.get(a.id, None)
+        items.append(d)
+
+    return {"items": items, "total": total, "page": page, "pages": pages}
 
 
 async def get_asset(db: AsyncSession, asset_id: uuid.UUID) -> AssetDetail:

@@ -1,55 +1,59 @@
 @import "tailwindcss";
 
-/* AssetVault Design Tokens */
 @theme {
-  --color-vault-black: #0A0A0F;
-  --color-vault-surface: #12121A;
-  --color-vault-border: #1E1E2E;
-  --color-vault-muted: #2A2A3E;
-  --color-vault-amber: #F59E0B;
-  --color-vault-amber-dim: #92400E;
-  --color-vault-blue: #3B82F6;
-  --color-vault-green: #10B981;
+  /* Base Surfaces */
+  --color-vault-black: #0E0E13;
+  --color-vault-surface: #161620;
+  --color-vault-elevated: #1C1C28;
+  --color-vault-input: #1A1A24;
+  --color-vault-muted: #1F1F2E;
+  --color-vault-border: #242434;
+  --color-vault-border-focus: #3B3B55;
+
+  /* Text */
+  --color-vault-text: #E8E8F0;
+  --color-vault-muted-text: #8E8EA8;
+  --color-vault-disabled: #4A4A60;
+
+  /* Brand Accent */
+  --color-vault-amber: #F5A623;
+  --color-vault-amber-dim: #7A4F0F;
+
+  /* Status */
+  --color-vault-green: #22C55E;
   --color-vault-yellow: #FBBF24;
+  --color-vault-orange: #F97316;
   --color-vault-red: #EF4444;
-  --color-vault-gray: #6B7280;
-  --color-vault-text: #E5E7EB;
-  --color-vault-muted-text: #9CA3AF;
-  --font-display: 'Syne', system-ui, sans-serif;
-  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --color-vault-gray: #4B5563;
+  --color-vault-blue: #3B82F6;
+
+  /* Fonts */
+  --font-display: 'DM Mono', monospace;
+  --font-sans: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
 
-/* Global styles */
 @layer base {
   html {
-    background-color: #0A0A0F;
-    color: #E5E7EB;
+    background-color: #0E0E13;
+    color: #E8E8F0;
   }
   body {
     margin: 0;
-    background-color: #0A0A0F;
-    color: #E5E7EB;
-    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    background-color: #0E0E13;
+    color: #E8E8F0;
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: 'cv11', 'ss01';
   }
   #root {
     min-height: 100vh;
-    background-color: #0A0A0F;
+    background-color: #0E0E13;
   }
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: #12121A;
-}
-::-webkit-scrollbar-thumb {
-  background: #2A2A3E;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #3A3A4E;
-}
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #242434; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #3B3B55; }
