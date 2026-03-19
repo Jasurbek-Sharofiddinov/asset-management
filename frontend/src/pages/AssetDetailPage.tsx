@@ -411,7 +411,7 @@ export default function AssetDetailPage() {
                       <div className="flex items-center gap-2 mb-1">
                         <ActionBadge action={event.action} />
                         <span className="text-xs text-vault-muted-text">
-                          {formatDateTime(event.timestamp)}
+                          {formatDateTime(event.occurred_at || event.timestamp)}
                         </span>
                       </div>
                       <p className="text-sm text-vault-text">
