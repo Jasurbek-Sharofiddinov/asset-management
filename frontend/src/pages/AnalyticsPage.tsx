@@ -55,7 +55,7 @@ export default function AnalyticsPage() {
 
   const { data: rawDeptAllocation, isLoading: l3 } = useQuery({
     queryKey: ['analytics', 'department-allocation'],
-    queryFn: analyticsApi.getDepartmentAllocation,
+    queryFn: () => analyticsApi.getDepartmentAllocation(),
   })
 
   const { data: rawAgeDistribution, isLoading: l4 } = useQuery({

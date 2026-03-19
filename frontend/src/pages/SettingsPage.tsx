@@ -26,30 +26,18 @@ type TabId = 'users' | 'reference' | 'system'
 
 const departmentSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  code: z.string().min(1, 'Code is required'),
-  branch_id: z.preprocess(
-    (val) => (val === '' || val === undefined ? undefined : Number(val)),
-    z.number().optional()
-  ),
 })
 
 const branchSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  code: z.string().min(1, 'Code is required'),
-  address: z.string().optional(),
+  location: z.string().optional(),
 })
 
 const employeeSchema = z.object({
   full_name: z.string().min(1, 'Name is required'),
-  employee_code: z.string().min(1, 'Employee code is required'),
-  department_id: z.preprocess(
-    (val) => (val === '' || val === undefined ? undefined : Number(val)),
-    z.number().optional()
-  ),
-  branch_id: z.preprocess(
-    (val) => (val === '' || val === undefined ? undefined : Number(val)),
-    z.number().optional()
-  ),
+  email: z.string().min(1, 'Email is required'),
+  department_id: z.string().optional(),
+  branch_id: z.string().optional(),
   position: z.string().optional(),
 })
 
@@ -90,7 +78,7 @@ export default function SettingsPage() {
   // Department form
   const deptForm = useForm({
     resolver: zodResolver(departmentSchema),
-    defaultValues: { name: '', code: '' },
+    defaultValues: { name: '' },
   })
 
   const createDeptMutation = useMutation({
@@ -110,7 +98,7 @@ export default function SettingsPage() {
   // Branch form
   const branchForm = useForm({
     resolver: zodResolver(branchSchema),
-    defaultValues: { name: '', code: '', address: '' },
+    defaultValues: { name: '', location: '' },
   })
 
   const createBranchMutation = useMutation({
@@ -130,7 +118,7 @@ export default function SettingsPage() {
   // Employee form
   const employeeForm = useForm({
     resolver: zodResolver(employeeSchema),
-    defaultValues: { full_name: '', employee_code: '', position: '' },
+    defaultValues: { full_name: '', email: '', position: '' },
   })
 
   const createEmployeeMutation = useMutation({
@@ -222,12 +210,6 @@ export default function SettingsPage() {
                       <th className="px-4 py-3 text-left text-xs font-semibold text-vault-muted-text uppercase tracking-wider">
                         Name
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-vault-muted-text uppercase tracking-wider">
-                        Code
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-vault-muted-text uppercase tracking-wider">
-                        Branch
-                      </th>
                       <th className="px-4 py-3 text-right text-xs font-semibold text-vault-muted-text uppercase tracking-wider">
                         Assets
                       </th>
@@ -237,10 +219,6 @@ export default function SettingsPage() {
                     {departments.map((dept) => (
                       <tr key={dept.id} className="border-b border-vault-border/30 hover:bg-vault-muted/10">
                         <td className="px-4 py-3 text-vault-text font-medium">{dept.name}</td>
-                        <td className="px-4 py-3 font-[family-name:var(--font-mono)] text-[13px] text-vault-muted-text">
-                          {dept.code}
-                        </td>
-                        <td className="px-4 py-3 text-vault-muted-text">{dept.branch_name || '-'}</td>
                         <td className="px-4 py-3 text-right text-vault-text">{dept.asset_count || 0}</td>
                       </tr>
                     ))}
@@ -277,10 +255,7 @@ export default function SettingsPage() {
                         Name
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-vault-muted-text uppercase tracking-wider">
-                        Code
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-vault-muted-text uppercase tracking-wider">
-                        Address
+                        Location
                       </th>
                       <th className="px-4 py-3 text-right text-xs font-semibold text-vault-muted-text uppercase tracking-wider">
                         Assets
@@ -291,10 +266,7 @@ export default function SettingsPage() {
                     {branches.map((branch) => (
                       <tr key={branch.id} className="border-b border-vault-border/30 hover:bg-vault-muted/10">
                         <td className="px-4 py-3 text-vault-text font-medium">{branch.name}</td>
-                        <td className="px-4 py-3 font-[family-name:var(--font-mono)] text-[13px] text-vault-muted-text">
-                          {branch.code}
-                        </td>
-                        <td className="px-4 py-3 text-vault-muted-text">{branch.address || '-'}</td>
+                        <td className="px-4 py-3 text-vault-muted-text">{branch.location || '-'}</td>
                         <td className="px-4 py-3 text-right text-vault-text">{branch.asset_count || 0}</td>
                       </tr>
                     ))}
@@ -331,16 +303,13 @@ export default function SettingsPage() {
                         Name
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-vault-muted-text uppercase tracking-wider">
-                        Code
+                        Email
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-vault-muted-text uppercase tracking-wider">
                         Position
                       </th>
                       <th className="px-4 py-3 text-left text-xs font-semibold text-vault-muted-text uppercase tracking-wider">
                         Department
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-vault-muted-text uppercase tracking-wider">
-                        Status
                       </th>
                     </tr>
                   </thead>
@@ -349,21 +318,10 @@ export default function SettingsPage() {
                       <tr key={emp.id} className="border-b border-vault-border/30 hover:bg-vault-muted/10">
                         <td className="px-4 py-3 text-vault-text font-medium">{emp.full_name}</td>
                         <td className="px-4 py-3 font-[family-name:var(--font-mono)] text-[13px] text-vault-muted-text">
-                          {emp.employee_code}
+                          {emp.email}
                         </td>
                         <td className="px-4 py-3 text-vault-muted-text">{emp.position || '-'}</td>
                         <td className="px-4 py-3 text-vault-muted-text">{emp.department_name || '-'}</td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                              emp.is_active
-                                ? 'bg-vault-green/10 text-vault-green'
-                                : 'bg-vault-red/10 text-vault-red'
-                            }`}
-                          >
-                            {emp.is_active ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -440,18 +398,6 @@ export default function SettingsPage() {
             error={deptForm.formState.errors.name?.message}
             {...deptForm.register('name')}
           />
-          <Input
-            label="Code"
-            placeholder="e.g., IT"
-            error={deptForm.formState.errors.code?.message}
-            {...deptForm.register('code')}
-          />
-          <Select
-            label="Branch"
-            placeholder="Select branch (optional)"
-            options={branches.map((b) => ({ value: String(b.id), label: b.name }))}
-            {...deptForm.register('branch_id')}
-          />
           <div className="flex justify-end gap-3 pt-2">
             <Button
               variant="ghost"
@@ -491,15 +437,9 @@ export default function SettingsPage() {
             {...branchForm.register('name')}
           />
           <Input
-            label="Code"
-            placeholder="e.g., HQ"
-            error={branchForm.formState.errors.code?.message}
-            {...branchForm.register('code')}
-          />
-          <Input
-            label="Address"
+            label="Location"
             placeholder="e.g., 123 Main St"
-            {...branchForm.register('address')}
+            {...branchForm.register('location')}
           />
           <div className="flex justify-end gap-3 pt-2">
             <Button
@@ -540,10 +480,10 @@ export default function SettingsPage() {
             {...employeeForm.register('full_name')}
           />
           <Input
-            label="Employee Code"
-            placeholder="e.g., EMP-001"
-            error={employeeForm.formState.errors.employee_code?.message}
-            {...employeeForm.register('employee_code')}
+            label="Email"
+            placeholder="e.g., john@example.com"
+            error={employeeForm.formState.errors.email?.message}
+            {...employeeForm.register('email')}
           />
           <Input
             label="Position"

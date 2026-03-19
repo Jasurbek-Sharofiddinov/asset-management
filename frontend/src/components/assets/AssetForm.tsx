@@ -16,7 +16,7 @@ const assetSchema = z.object({
   name: z.string().min(1, 'Name is required').max(200),
   asset_type: z.string().min(1, 'Type is required'),
   serial_number: z.string().min(1, 'Serial number is required'),
-  category: z.enum(['FURNITURE', 'ELECTRONICS', 'VEHICLE', 'EQUIPMENT', 'SOFTWARE', 'OTHER']),
+  category: z.enum(['IT', 'OFFICE', 'SECURITY', 'NETWORKING', 'PRINTING', 'SERVER', 'MOBILE', 'FURNITURE', 'OTHER']),
   brand: z.string().optional(),
   model: z.string().optional(),
   description: z.string().optional(),
@@ -34,11 +34,14 @@ interface AssetFormProps {
 }
 
 const categoryOptions = [
+  { value: 'IT', label: 'IT' },
+  { value: 'OFFICE', label: 'Office' },
+  { value: 'SECURITY', label: 'Security' },
+  { value: 'NETWORKING', label: 'Networking' },
+  { value: 'PRINTING', label: 'Printing' },
+  { value: 'SERVER', label: 'Server' },
+  { value: 'MOBILE', label: 'Mobile' },
   { value: 'FURNITURE', label: 'Furniture' },
-  { value: 'ELECTRONICS', label: 'Electronics' },
-  { value: 'VEHICLE', label: 'Vehicle' },
-  { value: 'EQUIPMENT', label: 'Equipment' },
-  { value: 'SOFTWARE', label: 'Software' },
   { value: 'OTHER', label: 'Other' },
 ]
 
@@ -54,7 +57,7 @@ export function AssetForm({ isOpen, onClose, asset }: AssetFormProps) {
     setValue,
     watch,
     formState: { errors },
-  } = useForm<AssetFormData>({
+  } = useForm({
     resolver: zodResolver(assetSchema) as any,
     defaultValues: asset
       ? {
@@ -70,7 +73,7 @@ export function AssetForm({ isOpen, onClose, asset }: AssetFormProps) {
           warranty_expiry: asset.warranty_expiry || '',
         }
       : {
-          category: 'ELECTRONICS',
+          category: 'IT',
         },
   })
 
@@ -162,7 +165,7 @@ export function AssetForm({ isOpen, onClose, asset }: AssetFormProps) {
       title={asset ? 'Edit Asset' : 'Add New Asset'}
       size="md"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-6">
         {/* Step Indicators */}
         <div className="flex items-center gap-3 mb-6">
           <button

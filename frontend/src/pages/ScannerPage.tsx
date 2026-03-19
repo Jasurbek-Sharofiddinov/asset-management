@@ -39,12 +39,12 @@ export default function ScannerPage() {
 
       try {
         // Extract asset ID from URL or use as-is
-        let assetId: number | null = null
-        const urlMatch = decodedText.match(/\/assets\/(\d+)/)
+        let assetId: string | null = null
+        const urlMatch = decodedText.match(/\/assets\/([^/\s]+)/)
         if (urlMatch) {
-          assetId = parseInt(urlMatch[1])
-        } else if (/^\d+$/.test(decodedText.trim())) {
-          assetId = parseInt(decodedText.trim())
+          assetId = urlMatch[1]
+        } else if (decodedText.trim()) {
+          assetId = decodedText.trim()
         }
 
         if (assetId) {
@@ -238,7 +238,7 @@ export default function ScannerPage() {
                   <div className="p-2 rounded-lg bg-vault-black/50 border border-vault-border/30">
                     <p className="text-xs text-vault-muted-text">Value</p>
                     <p className="text-sm text-vault-text">
-                      {formatCurrency(scannedAsset.purchase_price)}
+                      {formatCurrency(Number(scannedAsset.purchase_price))}
                     </p>
                   </div>
                 )}

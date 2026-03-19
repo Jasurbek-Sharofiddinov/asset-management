@@ -148,7 +148,7 @@ function squarify(items: { name: string; count: number }[], W: number, H: number
   return rects
 }
 
-function SquarifiedTreemap({ data, total }: { data: { name: string; count: number }[]; total: number }) {
+function SquarifiedTreemap({ data }: { data: { name: string; count: number }[]; total: number }) {
   const W = 600, H = 220
   const GAP = 3
   const rects = squarify(data, W, H)

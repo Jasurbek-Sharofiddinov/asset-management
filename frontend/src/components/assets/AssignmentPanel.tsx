@@ -12,9 +12,9 @@ import { assignmentsApi, referenceApi } from '../../lib/api'
 import type { Asset } from '../../types'
 
 const assignSchema = z.object({
-  employee_id: z.union([z.coerce.number(), z.literal('').transform(() => undefined)]).optional(),
-  department_id: z.union([z.coerce.number(), z.literal('').transform(() => undefined)]).optional(),
-  branch_id: z.union([z.coerce.number(), z.literal('').transform(() => undefined)]).optional(),
+  employee_id: z.union([z.string().min(1), z.literal('').transform(() => undefined)]).optional(),
+  department_id: z.union([z.string().min(1), z.literal('').transform(() => undefined)]).optional(),
+  branch_id: z.union([z.string().min(1), z.literal('').transform(() => undefined)]).optional(),
   notes: z.string().optional(),
 })
 
@@ -76,7 +76,7 @@ export function AssignmentPanel({ isOpen, onClose, asset }: AssignmentPanelProps
   })
 
   const returnMutation = useMutation({
-    mutationFn: () => assignmentsApi.returnAsset(asset.id, { notes: formValues.notes }),
+    mutationFn: () => assignmentsApi.returnAsset(asset.id, { return_reason: formValues.notes }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assets'] })
       queryClient.invalidateQueries({ queryKey: ['asset', asset.id] })
@@ -104,13 +104,13 @@ export function AssignmentPanel({ isOpen, onClose, asset }: AssignmentPanelProps
   }
 
   const selectedEmployee = employees.find(
-    (e) => e.id === Number(formValues.employee_id)
+    (e) => e.id === formValues.employee_id
   )
   const selectedDepartment = departments.find(
-    (d) => d.id === Number(formValues.department_id)
+    (d) => d.id === formValues.department_id
   )
   const selectedBranch = branches.find(
-    (b) => b.id === Number(formValues.branch_id)
+    (b) => b.id === formValues.branch_id
   )
 
   const isAssigned = asset.status === 'ASSIGNED'
@@ -185,10 +185,9 @@ export function AssignmentPanel({ isOpen, onClose, asset }: AssignmentPanelProps
                 label="Employee"
                 placeholder="Select employee..."
                 options={employees
-                  .filter((e) => e.is_active)
                   .map((e) => ({
                     value: String(e.id),
-                    label: `${e.full_name} (${e.employee_code})`,
+                    label: `${e.full_name} (${e.email})`,
                   }))}
                 {...register('employee_id')}
               />
