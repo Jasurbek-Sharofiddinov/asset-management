@@ -32,7 +32,7 @@ function Cursor() {
   return (
     <motion.span
       animate={{ opacity: [1, 0] }}
-      transition={{ repeat: Infinity, duration: 0.8, ease: 'steps(1)' }}
+      transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
       className="inline-block w-[2px] h-[1em] bg-vault-amber align-middle ml-0.5"
     />
   )

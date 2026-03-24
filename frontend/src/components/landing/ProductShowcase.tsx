@@ -36,7 +36,7 @@ function Caret() {
   return (
     <motion.span
       animate={{ opacity: [1, 0] }}
-      transition={{ repeat: Infinity, duration: 0.65, ease: 'steps(1)' }}
+      transition={{ repeat: Infinity, duration: 0.65, ease: 'linear' }}
       className="inline-block w-[2px] h-[1em] bg-vault-amber align-middle ml-0.5"
     />
   )
