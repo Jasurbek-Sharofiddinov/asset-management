@@ -22,7 +22,7 @@ import {
 import { assetsApi, assignmentsApi } from '../lib/api'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
-import { StatusBadge, ActionBadge } from '../components/ui/Badge'
+import { StatusBadge } from '../components/ui/Badge'
 import { PageLoader } from '../components/ui/LoadingSpinner'
 import { useToast } from '../components/ui/Toast'
 import { AssetForm } from '../components/assets/AssetForm'
@@ -392,7 +392,7 @@ export default function AssetDetailPage() {
       {activeTab === 'history' && (
         <Card>
           <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold text-vault-text mb-4">
-            Asset History
+            Assignment History
           </h3>
           {history.length > 0 ? (
             <div className="relative">
@@ -406,21 +406,50 @@ export default function AssetDetailPage() {
                     transition={{ delay: idx * 0.05 }}
                     className="relative flex gap-4 pl-10"
                   >
-                    <div className="absolute left-[10px] top-2 w-[11px] h-[11px] rounded-full bg-vault-amber border-2 border-vault-surface z-10" />
+                    <div className={`absolute left-[10px] top-2 w-[11px] h-[11px] rounded-full border-2 border-vault-surface z-10 ${event.returned_at ? 'bg-vault-muted-text' : 'bg-vault-amber'}`} />
                     <div className="flex-1 p-3 rounded-lg bg-vault-black/50 border border-vault-border/50">
-                      <div className="flex items-center gap-2 mb-1">
-                        <ActionBadge action={event.action} />
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${event.returned_at ? 'bg-vault-muted/20 text-vault-muted-text' : 'bg-vault-green/10 text-vault-green'}`}>
+                          {event.returned_at ? 'Returned' : 'Active'}
+                        </span>
                         <span className="text-xs text-vault-muted-text">
-                          {formatDateTime(event.occurred_at || event.timestamp)}
+                          {formatDateTime(event.assigned_at)}
                         </span>
                       </div>
-                      <p className="text-sm text-vault-text">
-                        {event.actor_name || 'System'}
-                      </p>
-                      {event.reason && (
-                        <p className="text-xs text-vault-muted-text mt-1">
-                          Reason: {event.reason}
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        {event.employee_name && (
+                          <div>
+                            <p className="text-[10px] text-vault-muted-text uppercase tracking-wider">Employee</p>
+                            <p className="text-vault-text">{event.employee_name}</p>
+                          </div>
+                        )}
+                        {event.department_name && (
+                          <div>
+                            <p className="text-[10px] text-vault-muted-text uppercase tracking-wider">Department</p>
+                            <p className="text-vault-text">{event.department_name}</p>
+                          </div>
+                        )}
+                        {event.branch_name && (
+                          <div>
+                            <p className="text-[10px] text-vault-muted-text uppercase tracking-wider">Branch</p>
+                            <p className="text-vault-text">{event.branch_name}</p>
+                          </div>
+                        )}
+                        {event.assigner_name && (
+                          <div>
+                            <p className="text-[10px] text-vault-muted-text uppercase tracking-wider">Assigned by</p>
+                            <p className="text-vault-text">{event.assigner_name}</p>
+                          </div>
+                        )}
+                      </div>
+                      {event.returned_at && (
+                        <p className="text-xs text-vault-muted-text mt-2">
+                          Returned: {formatDateTime(event.returned_at)}
+                          {event.return_reason ? ` — ${event.return_reason}` : ''}
                         </p>
+                      )}
+                      {event.notes && (
+                        <p className="text-xs text-vault-muted-text mt-1">Note: {event.notes}</p>
                       )}
                     </div>
                   </motion.div>
@@ -429,7 +458,7 @@ export default function AssetDetailPage() {
             </div>
           ) : (
             <p className="text-sm text-vault-muted-text text-center py-8">
-              No history records found
+              No assignment history found
             </p>
           )}
         </Card>
