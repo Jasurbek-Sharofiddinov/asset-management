@@ -9,7 +9,6 @@ import { useLanguageStore } from '../../stores/languageStore'
 import { cn } from '../../lib/utils'
 import { useState } from 'react'
 import type { TranslationKey } from '../../i18n/translations'
-import type { Locale } from '../../i18n/translations'
 
 const navGroups = [
   { labelKey: 'nav.home' as TranslationKey, items: [
@@ -30,15 +29,9 @@ const navGroups = [
   ]},
 ]
 
-const locales: { code: Locale; label: string }[] = [
-  { code: 'en', label: 'EN' },
-  { code: 'ru', label: 'RU' },
-  { code: 'uz', label: 'UZ' },
-]
-
 export function Sidebar() {
   const { user, logout } = useAuthStore()
-  const { t, locale, setLocale } = useLanguageStore()
+  const { t } = useLanguageStore()
   const navigate = useNavigate()
   const [isMobileOpen, setIsMobileOpen] = useState(false)
 
@@ -97,26 +90,6 @@ export function Sidebar() {
           )
         })}
       </nav>
-
-      {/* Language Switcher */}
-      <div className="px-4 py-2 border-t border-vault-border/50">
-        <div className="flex items-center gap-1">
-          {locales.map((loc) => (
-            <button
-              key={loc.code}
-              onClick={() => setLocale(loc.code)}
-              className={cn(
-                'flex-1 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all',
-                locale === loc.code
-                  ? 'bg-vault-amber/15 text-vault-amber border border-vault-amber/30'
-                  : 'text-vault-muted-text hover:text-vault-text hover:bg-vault-muted/20 border border-transparent'
-              )}
-            >
-              {loc.label}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* User */}
       <div className="px-4 py-4 border-t border-vault-border/50">

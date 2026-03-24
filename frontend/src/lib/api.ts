@@ -71,6 +71,10 @@ export const authApi = {
     const { data } = await api.get('/api/auth/me')
     return data
   },
+  register: async (full_name: string, email: string, password: string): Promise<LoginResponse> => {
+    const { data } = await api.post('/api/auth/register', { full_name, email, password })
+    return data
+  },
 }
 
 // === Assets ===

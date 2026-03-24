@@ -9,6 +9,7 @@ import type { UserRole } from './types'
 
 // Lazy load pages
 const LoginPage = lazy(() => import('./pages/LoginPage'))
+const RegisterPage = lazy(() => import('./pages/RegisterPage'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const AssetsPage = lazy(() => import('./pages/AssetsPage'))
 const AssetDetailPage = lazy(() => import('./pages/AssetDetailPage'))
@@ -70,6 +71,14 @@ export default function App() {
                 element={
                   <PublicRoute>
                     <LoginPage />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/register"
+                element={
+                  <PublicRoute>
+                    <RegisterPage />
                   </PublicRoute>
                 }
               />

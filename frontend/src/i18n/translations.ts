@@ -83,6 +83,25 @@ export const translations = {
     'login.passwordPlaceholder': 'Enter your password',
     'login.signIn': 'Sign In',
     'login.secured': 'Secured by AssetVault Banking Solutions',
+    'login.noAccount': "Don't have an account?",
+    'login.register': 'Register',
+
+    // ── Register ──
+    'register.title': 'Create Account',
+    'register.subtitle': 'Join AssetVault to manage assets',
+    'register.fullNameLabel': 'Full name',
+    'register.fullNamePlaceholder': 'John Smith',
+    'register.emailLabel': 'Email address',
+    'register.emailPlaceholder': 'you@assetvault.com',
+    'register.passwordLabel': 'Password',
+    'register.passwordPlaceholder': 'Min. 6 characters',
+    'register.confirmPasswordLabel': 'Confirm password',
+    'register.confirmPasswordPlaceholder': 'Repeat your password',
+    'register.submit': 'Create Account',
+    'register.haveAccount': 'Already have an account?',
+    'register.signIn': 'Sign In',
+    'register.passwordMismatch': 'Passwords do not match',
+    'register.viewerNote': 'New accounts start with Viewer role. Contact an admin to change your role.',
 
     // ── Header ──
     'header.dashboard': 'Dashboard',
@@ -243,6 +262,25 @@ export const translations = {
     'login.passwordPlaceholder': '\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043F\u0430\u0440\u043E\u043B\u044C',
     'login.signIn': '\u0412\u043E\u0439\u0442\u0438',
     'login.secured': '\u0417\u0430\u0449\u0438\u0449\u0435\u043D\u043E AssetVault Banking Solutions',
+    'login.noAccount': '\u041D\u0435\u0442 \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u0430?',
+    'login.register': '\u0417\u0430\u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0438\u0440\u043E\u0432\u0430\u0442\u044C\u0441\u044F',
+
+    // ── Register ──
+    'register.title': '\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u0430\u043A\u043A\u0430\u0443\u043D\u0442',
+    'register.subtitle': '\u041F\u0440\u0438\u0441\u043E\u0435\u0434\u0438\u043D\u0438\u0442\u0435\u0441\u044C \u043A AssetVault',
+    'register.fullNameLabel': '\u041F\u043E\u043B\u043D\u043E\u0435 \u0438\u043C\u044F',
+    'register.fullNamePlaceholder': '\u0418\u0432\u0430\u043D \u0418\u0432\u0430\u043D\u043E\u0432',
+    'register.emailLabel': '\u042D\u043B\u0435\u043A\u0442\u0440\u043E\u043D\u043D\u0430\u044F \u043F\u043E\u0447\u0442\u0430',
+    'register.emailPlaceholder': 'you@assetvault.com',
+    'register.passwordLabel': '\u041F\u0430\u0440\u043E\u043B\u044C',
+    'register.passwordPlaceholder': '\u041C\u0438\u043D. 6 \u0441\u0438\u043C\u0432\u043E\u043B\u043E\u0432',
+    'register.confirmPasswordLabel': '\u041F\u043E\u0434\u0442\u0432\u0435\u0440\u0434\u0438\u0442\u0435 \u043F\u0430\u0440\u043E\u043B\u044C',
+    'register.confirmPasswordPlaceholder': '\u041F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u043F\u0430\u0440\u043E\u043B\u044C',
+    'register.submit': '\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u0430\u043A\u043A\u0430\u0443\u043D\u0442',
+    'register.haveAccount': '\u0423\u0436\u0435 \u0435\u0441\u0442\u044C \u0430\u043A\u043A\u0430\u0443\u043D\u0442?',
+    'register.signIn': '\u0412\u043E\u0439\u0442\u0438',
+    'register.passwordMismatch': '\u041F\u0430\u0440\u043E\u043B\u0438 \u043D\u0435 \u0441\u043E\u0432\u043F\u0430\u0434\u0430\u044E\u0442',
+    'register.viewerNote': '\u041D\u043E\u0432\u044B\u0435 \u0430\u043A\u043A\u0430\u0443\u043D\u0442\u044B \u043F\u043E\u043B\u0443\u0447\u0430\u044E\u0442 \u0440\u043E\u043B\u044C Viewer. \u0421\u0432\u044F\u0436\u0438\u0442\u0435\u0441\u044C \u0441 \u0430\u0434\u043C\u0438\u043D\u0438\u0441\u0442\u0440\u0430\u0442\u043E\u0440\u043E\u043C \u0434\u043B\u044F \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F \u0440\u043E\u043B\u0438.',
 
     // ── Header ──
     'header.dashboard': '\u041F\u0430\u043D\u0435\u043B\u044C \u0443\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u044F',
@@ -403,6 +441,25 @@ export const translations = {
     'login.passwordPlaceholder': 'Parolni kiriting',
     'login.signIn': 'Kirish',
     'login.secured': 'AssetVault Banking Solutions tomonidan himoyalangan',
+    'login.noAccount': "Hisobingiz yo'qmi?",
+    'login.register': "Ro'yxatdan o'tish",
+
+    // ── Register ──
+    'register.title': 'Hisob yaratish',
+    'register.subtitle': "AssetVault'ga qo'shiling",
+    'register.fullNameLabel': "To'liq ism",
+    'register.fullNamePlaceholder': 'Jasur Yusupov',
+    'register.emailLabel': 'Elektron pochta',
+    'register.emailPlaceholder': 'siz@assetvault.com',
+    'register.passwordLabel': 'Parol',
+    'register.passwordPlaceholder': 'Min. 6 ta belgi',
+    'register.confirmPasswordLabel': 'Parolni tasdiqlang',
+    'register.confirmPasswordPlaceholder': 'Parolni takrorlang',
+    'register.submit': 'Hisob yaratish',
+    'register.haveAccount': 'Hisobingiz bormi?',
+    'register.signIn': 'Kirish',
+    'register.passwordMismatch': "Parollar mos kelmaydi",
+    'register.viewerNote': "Yangi hisoblar Viewer rolini oladi. Rolni o'zgartirish uchun admin bilan bog'laning.",
 
     // ── Header ──
     'header.dashboard': 'Boshqaruv paneli',
