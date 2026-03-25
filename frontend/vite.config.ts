@@ -9,7 +9,9 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
+        // target: 'https://asset.datamou.uz',
         changeOrigin: true,
+        secure: false,
       },
     },
   },

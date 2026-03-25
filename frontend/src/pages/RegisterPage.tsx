@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { Shield, Eye, EyeOff } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { useLanguageStore } from '../stores/languageStore'
+import { authApi } from '../lib/api'
 import { Button } from '../components/ui/Button'
 import { cn } from '../lib/utils'
 import type { Locale } from '../i18n/translations'
@@ -14,28 +15,56 @@ const locales: { code: Locale; label: string }[] = [
   { code: 'uz', label: 'UZ' },
 ]
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const navigate = useNavigate()
-  const { login, isLoading, error, clearError } = useAuthStore()
   const { t, locale, setLocale } = useLanguageStore()
+  const { setUser } = useAuthStore()
+  const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    clearError()
+    setError(null)
+
+    if (password !== confirmPassword) {
+      setError(t('register.passwordMismatch'))
+      return
+    }
+
+    setIsLoading(true)
     try {
-      await login(email, password)
+      const response = await authApi.register(fullName, email, password)
+      const token = response.access_token
+      const user = {
+        id: response.user_id,
+        email,
+        full_name: response.full_name,
+        role: response.role,
+        is_active: true,
+      }
+      localStorage.setItem('token', token)
+      localStorage.setItem('user', JSON.stringify(user))
+      setUser(user)
+      // Manually set isAuthenticated via login-like approach
+      useAuthStore.setState({ token, user, isAuthenticated: true })
       navigate('/dashboard')
-    } catch {
-      // Error handled in store
+    } catch (err: any) {
+      const message = err.response?.data?.detail || 'Registration failed'
+      setError(message)
+    } finally {
+      setIsLoading(false)
     }
   }
 
   return (
     <div className="min-h-screen bg-vault-black flex items-center justify-center p-4 relative">
-      {/* Language Switcher — top-right */}
+      {/* Language Switcher */}
       <div className="absolute top-4 right-4 z-10 flex items-center gap-1">
         {locales.map((loc) => (
           <button
@@ -53,7 +82,6 @@ export default function LoginPage() {
         ))}
       </div>
 
-      {/* Subtle radial glow */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-vault-amber/[0.03] blur-[100px]" />
       </div>
@@ -77,12 +105,9 @@ export default function LoginPage() {
           <h1 className="font-[family-name:var(--font-display)] text-3xl font-bold text-vault-text">
             Asset<span className="text-vault-amber">Vault</span>
           </h1>
-          <p className="text-sm text-vault-muted-text mt-1">
-            {t('login.tagline')}
-          </p>
         </motion.div>
 
-        {/* Login Card */}
+        {/* Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -90,11 +115,9 @@ export default function LoginPage() {
           className="bg-vault-surface border border-vault-border rounded-2xl p-8 shadow-[0_0_0_1px_rgba(245,158,11,0.08),0_4px_24px_rgba(0,0,0,0.6)]"
         >
           <h2 className="font-[family-name:var(--font-display)] text-xl font-semibold text-vault-text mb-1">
-            {t('login.welcomeBack')}
+            {t('register.title')}
           </h2>
-          <p className="text-sm text-vault-muted-text mb-6">
-            {t('login.signInPrompt')}
-          </p>
+          <p className="text-sm text-vault-muted-text mb-6">{t('register.subtitle')}</p>
 
           {error && (
             <motion.div
@@ -108,38 +131,45 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-vault-text mb-1.5"
-              >
-                {t('login.emailLabel')}
+              <label className="block text-sm font-medium text-vault-text mb-1.5">
+                {t('register.fullNameLabel')}
               </label>
               <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={t('login.emailPlaceholder')}
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder={t('register.fullNamePlaceholder')}
                 required
                 className="w-full px-3 py-2.5 bg-vault-black border border-vault-border rounded-lg text-vault-text text-sm placeholder:text-vault-muted-text/50 focus:outline-none focus:ring-2 focus:ring-vault-amber/40 focus:border-vault-amber/50 transition-all"
               />
             </div>
 
             <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-vault-text mb-1.5"
-              >
-                {t('login.passwordLabel')}
+              <label className="block text-sm font-medium text-vault-text mb-1.5">
+                {t('register.emailLabel')}
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={t('register.emailPlaceholder')}
+                required
+                className="w-full px-3 py-2.5 bg-vault-black border border-vault-border rounded-lg text-vault-text text-sm placeholder:text-vault-muted-text/50 focus:outline-none focus:ring-2 focus:ring-vault-amber/40 focus:border-vault-amber/50 transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-vault-text mb-1.5">
+                {t('register.passwordLabel')}
               </label>
               <div className="relative">
                 <input
-                  id="password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder={t('login.passwordPlaceholder')}
+                  placeholder={t('register.passwordPlaceholder')}
                   required
+                  minLength={6}
                   className="w-full px-3 py-2.5 pr-10 bg-vault-black border border-vault-border rounded-lg text-vault-text text-sm placeholder:text-vault-muted-text/50 focus:outline-none focus:ring-2 focus:ring-vault-amber/40 focus:border-vault-amber/50 transition-all"
                 />
                 <button
@@ -147,46 +177,50 @@ export default function LoginPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-vault-muted-text hover:text-vault-text transition-colors"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
 
-            <Button
-              type="submit"
-              isLoading={isLoading}
-              className="w-full py-2.5"
-              size="lg"
-            >
-              {t('login.signIn')}
+            <div>
+              <label className="block text-sm font-medium text-vault-text mb-1.5">
+                {t('register.confirmPasswordLabel')}
+              </label>
+              <div className="relative">
+                <input
+                  type={showConfirm ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder={t('register.confirmPasswordPlaceholder')}
+                  required
+                  className="w-full px-3 py-2.5 pr-10 bg-vault-black border border-vault-border rounded-lg text-vault-text text-sm placeholder:text-vault-muted-text/50 focus:outline-none focus:ring-2 focus:ring-vault-amber/40 focus:border-vault-amber/50 transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-vault-muted-text hover:text-vault-text transition-colors"
+                >
+                  {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-vault-muted-text leading-relaxed">
+              {t('register.viewerNote')}
+            </p>
+
+            <Button type="submit" isLoading={isLoading} className="w-full py-2.5" size="lg">
+              {t('register.submit')}
             </Button>
           </form>
+
+          <p className="text-center text-sm text-vault-muted-text mt-5">
+            {t('register.haveAccount')}{' '}
+            <Link to="/login" className="text-vault-amber hover:text-vault-amber/80 font-medium transition-colors">
+              {t('register.signIn')}
+            </Link>
+          </p>
         </motion.div>
-
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4, duration: 0.5 }}
-          className="text-center text-sm text-vault-muted-text mt-5"
-        >
-          {t('login.noAccount')}{' '}
-          <Link to="/register" className="text-vault-amber hover:text-vault-amber/80 font-medium transition-colors">
-            {t('login.register')}
-          </Link>
-        </motion.p>
-
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5, duration: 0.5 }}
-          className="text-center text-xs text-vault-muted-text mt-3"
-        >
-          {t('login.secured')}
-        </motion.p>
       </motion.div>
     </div>
   )

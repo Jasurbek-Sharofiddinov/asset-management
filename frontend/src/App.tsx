@@ -8,7 +8,9 @@ import { ToastProvider } from './components/ui/Toast'
 import type { UserRole } from './types'
 
 // Lazy load pages
+const LandingPage = lazy(() => import('./pages/LandingPage'))
 const LoginPage = lazy(() => import('./pages/LoginPage'))
+const RegisterPage = lazy(() => import('./pages/RegisterPage'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const AssetsPage = lazy(() => import('./pages/AssetsPage'))
 const AssetDetailPage = lazy(() => import('./pages/AssetDetailPage'))
@@ -47,10 +49,10 @@ function ProtectedRoute({
   return <>{children}</>
 }
 
-function PublicRoute({ children }: { children: React.ReactNode }) {
+function PublicRoute({ children, redirectIfAuth = true }: { children: React.ReactNode; redirectIfAuth?: boolean }) {
   const { isAuthenticated } = useAuthStore()
 
-  if (isAuthenticated) {
+  if (redirectIfAuth && isAuthenticated) {
     return <Navigate to="/dashboard" replace />
   }
 
@@ -66,10 +68,26 @@ export default function App() {
             <Routes>
               {/* Public routes */}
               <Route
+                path="/"
+                element={
+                  <PublicRoute redirectIfAuth={false}>
+                    <LandingPage />
+                  </PublicRoute>
+                }
+              />
+              <Route
                 path="/login"
                 element={
                   <PublicRoute>
                     <LoginPage />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/register"
+                element={
+                  <PublicRoute>
+                    <RegisterPage />
                   </PublicRoute>
                 }
               />
@@ -106,7 +124,6 @@ export default function App() {
               </Route>
 
               {/* Default redirect */}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           </Suspense>

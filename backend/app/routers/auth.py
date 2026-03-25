@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.dependencies import get_db, get_current_user
 from app.models.user import User
-from app.schemas.auth import LoginRequest, TokenResponse, RefreshRequest
+from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse, RefreshRequest
 from app.exceptions import UnauthorizedException, BadRequestException
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -44,6 +44,37 @@ def create_refresh_token(user_id: str) -> str:
         "exp": expire,
     }
     return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+
+
+@router.post("/register", response_model=TokenResponse, status_code=201)
+async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.email == body.email))
+    if result.scalar_one_or_none():
+        raise BadRequestException("Email already registered")
+
+    hashed_password = pwd_context.hash(body.password)
+    user = User(
+        full_name=body.full_name,
+        email=body.email,
+        hashed_password=hashed_password,
+        role="VIEWER",
+        is_active=True,
+    )
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+
+    access_token = create_access_token(str(user.id), user.role)
+    refresh_token = create_refresh_token(str(user.id))
+
+    return TokenResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="bearer",
+        role=user.role,
+        user_id=user.id,
+        full_name=user.full_name,
+    )
 
 
 @router.post("/login", response_model=TokenResponse)

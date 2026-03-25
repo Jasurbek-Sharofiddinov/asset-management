@@ -10,7 +10,6 @@ import { useLayoutStore } from '../../stores/layoutStore'
 import { cn } from '../../lib/utils'
 import { useState } from 'react'
 import type { TranslationKey } from '../../i18n/translations'
-import type { Locale } from '../../i18n/translations'
 
 const navGroups = [
   { labelKey: 'nav.home' as TranslationKey, items: [
@@ -29,12 +28,6 @@ const navGroups = [
   { labelKey: 'nav.system' as TranslationKey, items: [
     { path: '/settings', labelKey: 'nav.settings' as TranslationKey, icon: Settings, roles: ['ADMIN', 'MANAGER'] },
   ]},
-]
-
-const locales: { code: Locale; label: string }[] = [
-  { code: 'en', label: 'EN' },
-  { code: 'ru', label: 'RU' },
-  { code: 'uz', label: 'UZ' },
 ]
 
 export function Sidebar() {
