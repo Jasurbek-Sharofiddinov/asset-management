@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { useAuthStore } from '../../stores/authStore'
 import { useLanguageStore } from '../../stores/languageStore'
+import { useLayoutStore } from '../../stores/layoutStore'
 import { cn } from '../../lib/utils'
 import { useState } from 'react'
 import type { TranslationKey } from '../../i18n/translations'
@@ -39,8 +40,8 @@ const locales: { code: Locale; label: string }[] = [
 export function Sidebar() {
   const { user, logout } = useAuthStore()
   const { t, locale, setLocale } = useLanguageStore()
+  const { sidebarOpen, toggleSidebar } = useLayoutStore()
   const navigate = useNavigate()
-  const [isMobileOpen, setIsMobileOpen] = useState(false)
 
   const handleLogout = async () => { await logout(); navigate('/login') }
 
@@ -70,7 +71,7 @@ export function Sidebar() {
                 <NavLink
                   key={item.path}
                   to={item.path}
-                  onClick={() => setIsMobileOpen(false)}
+                  onClick={toggleSidebar}
                   className={({ isActive }) => cn(
                     'flex items-center gap-2.5 px-3 py-2 rounded-[10px] text-[14px] font-medium transition-all duration-150 relative',
                     isActive
@@ -99,7 +100,7 @@ export function Sidebar() {
       </nav>
 
       {/* Language Switcher */}
-      <div className="px-4 py-2 border-t border-vault-border/50">
+      {/* <div className="px-4 py-2 border-t border-vault-border/50">
         <div className="flex items-center gap-1">
           {locales.map((loc) => (
             <button
@@ -116,7 +117,7 @@ export function Sidebar() {
             </button>
           ))}
         </div>
-      </div>
+      </div> */}
 
       {/* User */}
       <div className="px-4 py-4 border-t border-vault-border/50">
@@ -139,20 +140,23 @@ export function Sidebar() {
 
   return (
     <>
-      <button onClick={() => setIsMobileOpen(true)} className="fixed top-3 left-3 z-50 p-2 rounded-lg bg-vault-surface border border-vault-border text-vault-text lg:hidden">
+      <button onClick={toggleSidebar} className="fixed top-2 left-3 z-50 p-2 rounded-lg bg-vault-surface border border-vault-border text-vault-text lg:hidden">
         <Menu className="h-5 w-5" />
       </button>
-      {isMobileOpen && (
+      {sidebarOpen && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden" onClick={() => setIsMobileOpen(false)} />
+          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden" onClick={toggleSidebar} />
       )}
-      <motion.aside initial={false} animate={{ x: isMobileOpen ? 0 : '-100%' }}
+      <motion.aside initial={false} animate={{ x: sidebarOpen ? 0 : '-100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
         className="fixed inset-y-0 left-0 z-50 w-[220px] bg-vault-surface border-r border-vault-border lg:hidden">
-        <button onClick={() => setIsMobileOpen(false)} className="absolute top-4 right-3 p-1 text-vault-muted-text hover:text-vault-text"><X className="h-4 w-4" /></button>
+        <button onClick={toggleSidebar} className="absolute top-4 right-3 p-1 text-vault-muted-text hover:text-vault-text"><X className="h-4 w-4" /></button>
         {sidebarContent}
       </motion.aside>
-      <aside className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:left-0 lg:w-[220px] bg-vault-surface border-r border-vault-border/50">
+      <aside className={cn(
+        "hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:left-0 bg-vault-surface border-r border-vault-border/50 transition-all duration-300",
+        sidebarOpen ? "lg:w-[220px]" : "lg:w-[60px]"
+      )}>
         {sidebarContent}
       </aside>
     </>

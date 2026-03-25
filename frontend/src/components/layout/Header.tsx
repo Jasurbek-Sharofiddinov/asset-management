@@ -3,6 +3,8 @@ import { Search, Bell } from 'lucide-react'
 import { useState } from 'react'
 import { useLanguageStore } from '../../stores/languageStore'
 import type { TranslationKey } from '../../i18n/translations'
+import { useLayoutStore } from '../../stores/layoutStore'
+import { cn } from '../../lib/utils'
 
 const pageTitleKeys: Record<string, TranslationKey> = {
   '/dashboard': 'header.dashboard',
@@ -21,11 +23,12 @@ export function Header() {
   const titleKey = pageTitleKeys[basePath]
   const title = titleKey ? t(titleKey) : 'AssetVault'
   const isDetail = location.pathname.match(/^\/assets\/[a-zA-Z0-9-]+$/)
+  const { sidebarOpen } = useLayoutStore()
 
   return (
     <header className="sticky top-0 z-30 bg-vault-black/80 backdrop-blur-xl border-b border-vault-border/40" style={{ height: 56 }}>
       <div className="flex items-center justify-between px-6 h-full">
-        <h1 className="text-[15px] font-semibold text-vault-text">{isDetail ? t('header.assetDetail') : title}</h1>
+        <h1 className={cn("text-[15px] font-semibold text-vault-text", !sidebarOpen ? 'ml-8' : '')}>{isDetail ? t('header.assetDetail') : title}</h1>
         <div className="flex items-center gap-2.5">
           <div className="relative hidden md:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-vault-disabled" />

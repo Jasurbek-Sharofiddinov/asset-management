@@ -68,7 +68,7 @@ export function StatusBadge({ status, className }: { status: AssetStatus; classN
 export function ActionBadge({ action, className }: { action: AuditAction; className?: string }) {
   return (
     <Badge variant="action" action={action} className={className}>
-      {action.replace('_', ' ')}
+      {(action ?? '').replace('_', ' ')}
     </Badge>
   )
 }
