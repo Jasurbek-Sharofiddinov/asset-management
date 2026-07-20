@@ -17,8 +17,8 @@ AssetVault is a production-grade asset management platform built for banking and
 - **Pydantic v2** (request/response validation)
 
 ### Frontend
-- **React 18** + **TypeScript**
-- **Vite** (build tool)
+- **React 19** + **TypeScript**
+- **Vite 8** (build tool)
 - **Tailwind CSS v4** (custom design system)
 - **Recharts** (analytics charts)
 - **TanStack Query v5** (server state)
@@ -34,48 +34,76 @@ AssetVault is a production-grade asset management platform built for banking and
 
 ---
 
-## Quick Start
+## Run Locally
 
-### Prerequisites
-- Python 3.12+
-- Node.js 20+
-- PostgreSQL 15+ running locally
+You have two options: **Docker** (one command, nothing else to install) or a **native** setup (run the backend and frontend directly).
 
-### 1. Clone and setup
+### Option A — Docker (easiest)
+
+Requires only Docker Desktop. Brings up PostgreSQL, Redis, the backend, and the frontend together:
 
 ```bash
 git clone <repo-url>
 cd asset-management
+docker compose up --build
 ```
 
-### 2. Backend setup
+- **App**: http://localhost
+- **Frontend dev server**: http://localhost:5173
+- **API docs**: http://localhost:8000/docs
+
+Seed the database once the stack is up:
 
 ```bash
-# Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate        # Linux/Mac
-# or: venv\Scripts\activate     # Windows
-
-# Install dependencies
-pip install -r backend/requirements.txt
-
-# Configure database (edit backend/.env)
-# DATABASE_URL=postgresql+asyncpg://postgres:<password>@localhost:5432/assetvault
-# SYNC_DATABASE_URL=postgresql://postgres:<password>@localhost:5432/assetvault
-
-# Create database
-createdb assetvault
-# or: psql -U postgres -c "CREATE DATABASE assetvault;"
-
-# Seed with sample data
-cd backend
-python seed.py
-
-# Start the API server
-uvicorn app.main:app --reload --port 8000
+docker compose exec backend python seed.py
 ```
 
-### 3. Frontend setup
+### Option B — Native setup
+
+#### Prerequisites
+- **Python 3.10–3.13** (3.13 recommended)
+- **Node.js 20.19+** (or 22+ — required by Vite 8)
+- **PostgreSQL 15+** running locally (or just run `docker compose up -d db` to use the containerized DB)
+
+> **macOS note:** the system Python is 3.9, which is **too old** (the backend uses `X | None` syntax that needs 3.10+). The most reliable way to get a clean interpreter is [`uv`](https://github.com/astral-sh/uv): `brew install uv`.
+
+#### 1. Backend
+
+```bash
+git clone <repo-url>
+cd asset-management
+
+# --- create the virtual environment ---
+# Recommended (uv, pins a standalone Python 3.13):
+uv venv --python 3.13 --seed venv
+source venv/bin/activate
+uv pip install -r backend/requirements.txt
+
+# --- or, standard venv (needs Python 3.10+ on PATH) ---
+# python3 -m venv venv
+# source venv/bin/activate
+# pip install -r backend/requirements.txt
+```
+
+Create `backend/.env`:
+
+```env
+DATABASE_URL=postgresql+asyncpg://postgres:<password>@localhost:5432/assetvault
+SYNC_DATABASE_URL=postgresql://postgres:<password>@localhost:5432/assetvault
+JWT_SECRET=dev-secret-change-me
+```
+
+Create and seed the database, then start the API:
+
+```bash
+createdb assetvault           # or: psql -U postgres -c "CREATE DATABASE assetvault;"
+
+cd backend
+python seed.py                # loads sample data
+../venv/bin/uvicorn app.main:app --reload --port 8000
+```
+
+#### 2. Frontend
 
 ```bash
 cd frontend
@@ -83,17 +111,38 @@ npm install
 npm run dev
 ```
 
-### 4. Open in browser
+#### 3. Open in browser
 
 - **Frontend**: http://localhost:5173
-- **API Docs**: http://localhost:8000/docs
+- **API docs**: http://localhost:8000/docs
 
-### Docker (alternative)
+> The Vite dev server proxies `/api` to the backend on port 8000 (see `frontend/vite.config.ts`), so no extra CORS config is needed for local development.
+
+### Troubleshooting
+
+- **`seed.py` fails with "password cannot be longer than 72 bytes"** — a bcrypt/passlib mismatch. `bcrypt` is pinned `<5` in `requirements.txt`; reinstall deps if you see this. The harmless `error reading bcrypt version` warning can be ignored.
+- **`TypeError: unsupported operand type(s) for |` on startup** — your Python is older than 3.10. Recreate the venv with `uv venv --python 3.13 --seed venv`.
+- **Frontend `npm install` peer-dependency conflict** — the build tooling is aligned on Vite 8 + `@tailwindcss/vite` 4.3+. Make sure `package.json` isn't pinning an older Vite.
+
+---
+
+## Deployment (Production)
+
+Live at **https://asset.datamou.uz** (Let's Encrypt HTTPS).
+
+Deployed with Docker Compose on a Linux host using `docker-compose.prod.yml`, which differs from the local compose file:
+
+- **web** — multi-stage build (`frontend/Dockerfile.prod`): Vite builds static assets, served by Nginx, which also reverse-proxies `/api`, `/docs`, and `/openapi.json` to the backend and terminates TLS on 443 (HTTP → HTTPS redirect).
+- **backend / db / redis** — same images as local, but the DB and Redis ports are **not** published to the host.
+- **Secrets** (`POSTGRES_PASSWORD`, `JWT_SECRET`, `GROQ_API_KEY`) live in a server-only `.env` next to the compose file — never committed.
 
 ```bash
-docker-compose up --build
-# App available at http://localhost
+# on the server
+docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml exec -T backend python seed.py   # first run only
 ```
+
+TLS certificates are issued via a `certbot` container (webroot challenge) and auto-renewed by a twice-daily cron that reloads Nginx.
 
 ---
 
@@ -258,9 +307,9 @@ The `seed.py` script generates:
 - **5 branches**: HQ Tashkent, Samarkand, Namangan, Bukhara, Fergana
 - **8 departments**: IT, HR, Finance, Security, Operations, Legal, Customer Service, Management
 - **30 employees** across departments and branches
-- **150 assets** with realistic status distribution (~60% assigned, ~15% registered, ~10% in repair, ~8% lost, ~7% written off)
-- **118 assignments** with history
-- **473 audit log entries**
+- **300 assets** with realistic status distribution (~60% assigned, ~15% registered, ~10% in repair, ~8% lost, ~7% written off)
+- **~220 assignments** with history
+- **~900 audit log entries**
 - **3 users** (admin, manager, auditor)
 
 ---

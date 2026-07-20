@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query'
-import { motion } from 'framer-motion'
 import {
   LineChart,
   Line,
@@ -22,25 +21,32 @@ import { PageLoader } from '../components/ui/LoadingSpinner'
 import { formatCurrency, formatDate } from '../lib/utils'
 import { useLanguageStore } from '../stores/languageStore'
 
+// Status-based charts use the tuned light-theme status colors.
 const STATUS_COLORS: Record<string, string> = {
-  REGISTERED: '#6B7280',
-  ASSIGNED: '#10B981',
-  IN_REPAIR: '#FBBF24',
-  LOST: '#EF4444',
-  WRITTEN_OFF: '#4B5563',
+  REGISTERED: '#6B7280', // gray
+  ASSIGNED: '#16A34A', // green
+  IN_REPAIR: '#CA8A04', // yellow
+  LOST: '#DC2626', // red
+  WRITTEN_OFF: '#9CA3AF', // muted gray
 }
 
-const CATEGORY_COLORS = [
-  '#F59E0B', '#3B82F6', '#10B981', '#EF4444',
-  '#8B5CF6', '#EC4899', '#14B8A6', '#F97316', '#6366F1',
+// Non-status series use a restrained slate/blue monochrome ramp (dark → light).
+const SERIES_RAMP = [
+  '#17233D', '#2B3A5C', '#3F5480', '#5570A2', '#6E8BBB', '#8CA6CE', '#B0C2DD',
 ]
 
+// Light-theme chart primitives
+const GRID_STROKE = '#E4E7EC'
+const TICK_FILL = '#79808C'
+const BRAND = '#17233D'
+
 const tooltipStyle = {
-  backgroundColor: '#1C1C28',
-  border: '1px solid #3B3B55',
-  borderRadius: '8px',
-  color: '#E5E7EB',
+  backgroundColor: '#FFFFFF',
+  border: '1px solid #E4E7EC',
+  borderRadius: '10px',
+  color: '#0C0E14',
   fontSize: '12px',
+  boxShadow: '0 4px 16px rgba(12,14,20,0.08)',
 }
 
 export default function AnalyticsPage() {
@@ -106,318 +112,281 @@ export default function AnalyticsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 [&>div>div]:h-full">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 [&>div]:h-full">
         {/* 1. Asset Value Over Time */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0, duration: 0.35 }}
-        >
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('analytics.assetValueOverTime')}</CardTitle>
-            </CardHeader>
-            {valueOverTime && (valueOverTime as any[]).length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={valueOverTime as any[]}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1E1E2E" />
-                  <XAxis dataKey="date" stroke="#4B5563" fontSize={11} tickLine={false} />
-                  <YAxis
-                    stroke="#4B5563"
-                    fontSize={11}
-                    tickLine={false}
-                    tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
-                  />
-                  <Tooltip
-                    contentStyle={tooltipStyle}
-                    formatter={(value: any) => [formatCurrency(Number(value)), 'Total Value']}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="value"
-                    stroke="#F59E0B"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={{ r: 4, fill: '#F59E0B', stroke: '#0A0A0F', strokeWidth: 2 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[300px] flex items-center justify-center text-vault-muted-text text-sm">
-                {t('analytics.noData')}
-              </div>
-            )}
-          </Card>
-        </motion.div>
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('analytics.assetValueOverTime')}</CardTitle>
+          </CardHeader>
+          {valueOverTime && (valueOverTime as any[]).length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={valueOverTime as any[]}>
+                <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />
+                <XAxis dataKey="date" stroke={GRID_STROKE} tick={{ fill: TICK_FILL, fontSize: 11 }} tickLine={false} />
+                <YAxis
+                  stroke={GRID_STROKE}
+                  tick={{ fill: TICK_FILL, fontSize: 11 }}
+                  tickLine={false}
+                  tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+                />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  cursor={{ stroke: GRID_STROKE }}
+                  formatter={(value: any) => [formatCurrency(Number(value)), 'Total Value']}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke={BRAND}
+                  strokeWidth={2}
+                  dot={false}
+                  activeDot={{ r: 4, fill: BRAND, stroke: '#FFFFFF', strokeWidth: 2 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-vault-muted-text text-sm">
+              {t('analytics.noData')}
+            </div>
+          )}
+        </Card>
 
         {/* 2. Status Breakdown Over Time */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.08, duration: 0.35 }}
-        >
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('analytics.statusBreakdown')}</CardTitle>
-            </CardHeader>
-            {statusOverTime.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={statusOverTime}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1E1E2E" />
-                  <XAxis dataKey="date" stroke="#4B5563" fontSize={11} tickLine={false} />
-                  <YAxis stroke="#4B5563" fontSize={11} tickLine={false} />
-                  <Tooltip contentStyle={tooltipStyle} />
-                  <Legend
-                    verticalAlign="bottom"
-                    formatter={(value: string) => (
-                      <span style={{ color: '#9CA3AF', fontSize: '11px' }}>
-                        {value.replace('_', ' ')}
-                      </span>
-                    )}
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('analytics.statusBreakdown')}</CardTitle>
+          </CardHeader>
+          {statusOverTime.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={statusOverTime}>
+                <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />
+                <XAxis dataKey="date" stroke={GRID_STROKE} tick={{ fill: TICK_FILL, fontSize: 11 }} tickLine={false} />
+                <YAxis stroke={GRID_STROKE} tick={{ fill: TICK_FILL, fontSize: 11 }} tickLine={false} />
+                <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgba(23,35,61,0.04)' }} />
+                <Legend
+                  verticalAlign="bottom"
+                  formatter={(value: string) => (
+                    <span style={{ color: TICK_FILL, fontSize: '11px' }}>
+                      {value.replace('_', ' ')}
+                    </span>
+                  )}
+                />
+                {Object.entries(STATUS_COLORS).map(([key, color]) => (
+                  <Area
+                    key={key}
+                    type="monotone"
+                    dataKey={key}
+                    stackId="1"
+                    stroke={color}
+                    fill={color}
+                    fillOpacity={0.18}
                   />
-                  {Object.entries(STATUS_COLORS).map(([key, color]) => (
-                    <Area
-                      key={key}
-                      type="monotone"
-                      dataKey={key}
-                      stackId="1"
-                      stroke={color}
-                      fill={color}
-                      fillOpacity={0.4}
-                    />
-                  ))}
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[300px] flex items-center justify-center text-vault-muted-text text-sm">
-                {t('analytics.noData')}
-              </div>
-            )}
-          </Card>
-        </motion.div>
+                ))}
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-vault-muted-text text-sm">
+              {t('analytics.noData')}
+            </div>
+          )}
+        </Card>
 
         {/* 3. Department Allocation */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.16, duration: 0.35 }}
-        >
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('analytics.departmentAllocation')}</CardTitle>
-            </CardHeader>
-            {deptAllocation.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={deptAllocation} layout="vertical" margin={{ left: 10, right: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1E1E2E" horizontal={false} />
-                  <XAxis type="number" stroke="#4B5563" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis
-                    type="category"
-                    dataKey="department"
-                    stroke="#6B7280"
-                    fontSize={11}
-                    width={100}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <Tooltip
-                    contentStyle={tooltipStyle}
-                    formatter={(value: any) => [`${value} assets`, 'Assigned']}
-                  />
-                  <Bar dataKey="assets" radius={[0, 4, 4, 0]} barSize={20}>
-                    {deptAllocation.map((_: any, index: number) => (
-                      <Cell key={index} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[300px] flex items-center justify-center text-vault-muted-text text-sm">
-                {t('analytics.noData')}
-              </div>
-            )}
-          </Card>
-        </motion.div>
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('analytics.departmentAllocation')}</CardTitle>
+          </CardHeader>
+          {deptAllocation.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={deptAllocation} layout="vertical" margin={{ left: 10, right: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} horizontal={false} />
+                <XAxis type="number" stroke={GRID_STROKE} tick={{ fill: TICK_FILL, fontSize: 11 }} tickLine={false} axisLine={false} />
+                <YAxis
+                  type="category"
+                  dataKey="department"
+                  stroke={GRID_STROKE}
+                  tick={{ fill: TICK_FILL, fontSize: 11 }}
+                  width={100}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  cursor={{ fill: 'rgba(23,35,61,0.04)' }}
+                  formatter={(value: any) => [`${value} assets`, 'Assigned']}
+                />
+                <Bar dataKey="assets" radius={[0, 4, 4, 0]} barSize={20}>
+                  {deptAllocation.map((_: any, index: number) => (
+                    <Cell key={index} fill={SERIES_RAMP[index % SERIES_RAMP.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-vault-muted-text text-sm">
+              {t('analytics.noData')}
+            </div>
+          )}
+        </Card>
 
         {/* 4. Age Distribution */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.24, duration: 0.35 }}
-        >
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('analytics.ageDistribution')}</CardTitle>
-            </CardHeader>
-            {ageDistribution.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={ageDistribution}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1E1E2E" />
-                  <XAxis dataKey="range" stroke="#4B5563" fontSize={11} tickLine={false} />
-                  <YAxis stroke="#4B5563" fontSize={11} tickLine={false} />
-                  <Tooltip
-                    contentStyle={tooltipStyle}
-                    formatter={(value: any) => [`${value} assets`, 'Count']}
-                  />
-                  <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={40}>
-                    {ageDistribution.map((_, index) => (
-                      <Cell key={index} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-[300px] flex items-center justify-center text-vault-muted-text text-sm">
-                {t('analytics.noData')}
-              </div>
-            )}
-          </Card>
-        </motion.div>
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('analytics.ageDistribution')}</CardTitle>
+          </CardHeader>
+          {ageDistribution.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={ageDistribution}>
+                <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />
+                <XAxis dataKey="range" stroke={GRID_STROKE} tick={{ fill: TICK_FILL, fontSize: 11 }} tickLine={false} />
+                <YAxis stroke={GRID_STROKE} tick={{ fill: TICK_FILL, fontSize: 11 }} tickLine={false} />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  cursor={{ fill: 'rgba(23,35,61,0.04)' }}
+                  formatter={(value: any) => [`${value} assets`, 'Count']}
+                />
+                <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={40} fill={BRAND} />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-vault-muted-text text-sm">
+              {t('analytics.noData')}
+            </div>
+          )}
+        </Card>
 
         {/* 5. Repair Frequency */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.32, duration: 0.35 }}
-        >
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                <div className="flex items-center gap-2">
-                  <Wrench className="h-4 w-4 text-vault-yellow" />
-                  {t('analytics.repairFrequency')}
-                </div>
-              </CardTitle>
-              <span className="text-xs text-vault-muted-text">{t('analytics.top10')}</span>
-            </CardHeader>
-            {repairFrequency.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-vault-border">
-                      <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-vault-muted-text uppercase tracking-wider">
-                        {t('analytics.colAsset')}
-                      </th>
-                      <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-vault-muted-text uppercase tracking-wider">
-                        {t('analytics.colSerial')}
-                      </th>
-                      <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-vault-muted-text uppercase tracking-wider">
-                        {t('analytics.colCategory')}
-                      </th>
-                      <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-vault-muted-text uppercase tracking-wider">
-                        {t('analytics.colCount')}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {repairFrequency.map((item: any, i: number) => (
-                      <tr
-                        key={i}
-                        className="border-b border-vault-border/20 hover:bg-vault-muted/10 transition-colors"
-                      >
-                        <td className="px-4 py-2.5 text-vault-text">{item.name}</td>
-                        <td className="px-4 py-2.5 text-vault-muted-text" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '12px' }}>
-                          {item.serial_number}
-                        </td>
-                        <td className="px-4 py-2.5">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-vault-amber/10 text-vault-amber border border-vault-amber/20">
-                            {item.category}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2.5 text-right">
-                          <span
-                            className={`inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full text-xs font-bold ${
-                              item.repair_count >= 5
-                                ? 'bg-vault-red/10 text-vault-red'
-                                : item.repair_count >= 3
-                                ? 'bg-vault-yellow/10 text-vault-yellow'
-                                : 'bg-vault-muted/30 text-vault-muted-text'
-                            }`}
-                          >
-                            {item.repair_count}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              <div className="flex items-center gap-2">
+                <Wrench className="h-4 w-4 text-vault-yellow" />
+                {t('analytics.repairFrequency')}
               </div>
-            ) : (
-              <div className="py-12 text-center text-vault-muted-text text-sm">
-                {t('analytics.noRepairData')}
-              </div>
-            )}
-          </Card>
-        </motion.div>
-
-        {/* 6. Warranty Expiry */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.40, duration: 0.35 }}
-        >
-          <Card>
-            <CardHeader>
-              <CardTitle>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-vault-amber" />
-                  {t('analytics.warrantyExpiring')}
-                </div>
-              </CardTitle>
-              <span className="text-xs text-vault-muted-text">{t('analytics.next90days')}</span>
-            </CardHeader>
-            {warrantyExpiring.length > 0 ? (
-              <div className="space-y-1.5 max-h-[340px] overflow-y-auto">
-                {warrantyExpiring.map((item: any) => {
-                  const days = item.days_remaining ?? 0
-                  const isCritical = days <= 30
-                  const isWarning = days <= 60 && days > 30
-
-                  return (
-                    <div
-                      key={item.id}
-                      className={`flex items-center justify-between px-3 py-2.5 rounded-lg border transition-colors ${
-                        isCritical
-                          ? 'bg-vault-red/5 border-vault-red/15 hover:bg-vault-red/10'
-                          : isWarning
-                          ? 'bg-vault-yellow/5 border-vault-yellow/15 hover:bg-vault-yellow/10'
-                          : 'bg-vault-muted/5 border-vault-border/30 hover:bg-vault-muted/15'
-                      }`}
+            </CardTitle>
+            <span className="text-xs text-vault-muted-text">{t('analytics.top10')}</span>
+          </CardHeader>
+          {repairFrequency.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-vault-border">
+                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-vault-muted-text uppercase tracking-wider">
+                      {t('analytics.colAsset')}
+                    </th>
+                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-vault-muted-text uppercase tracking-wider">
+                      {t('analytics.colSerial')}
+                    </th>
+                    <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-vault-muted-text uppercase tracking-wider">
+                      {t('analytics.colCategory')}
+                    </th>
+                    <th className="px-4 py-2.5 text-right text-[11px] font-semibold text-vault-muted-text uppercase tracking-wider">
+                      {t('analytics.colCount')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {repairFrequency.map((item: any, i: number) => (
+                    <tr
+                      key={i}
+                      className="border-b border-vault-border/60 hover:bg-vault-muted/50 transition-colors"
                     >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-vault-text font-medium truncate">
-                          {item.name}
-                        </p>
-                        <p className="text-[11px] text-vault-muted-text" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
-                          {item.serial_number}
-                        </p>
-                      </div>
-                      <div className="text-right flex-shrink-0 ml-3">
-                        <p
-                          className={`text-sm font-semibold ${
-                            isCritical ? 'text-vault-red' : isWarning ? 'text-vault-yellow' : 'text-vault-green'
+                      <td className="px-4 py-2.5 text-vault-text">{item.name}</td>
+                      <td className="px-4 py-2.5 text-vault-muted-text font-mono text-[12px]">
+                        {item.serial_number}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-vault-muted text-vault-text border border-vault-border">
+                          {item.category}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        <span
+                          className={`inline-flex items-center justify-center min-w-[28px] px-2 py-0.5 rounded-full text-xs font-bold ${
+                            item.repair_count >= 5
+                              ? 'bg-danger-soft text-danger'
+                              : item.repair_count >= 3
+                              ? 'bg-warn-soft text-warn'
+                              : 'bg-vault-muted text-vault-muted-text'
                           }`}
                         >
-                          {days}d
-                        </p>
-                        <p className="text-[11px] text-vault-muted-text">
-                          {formatDate(item.warranty_expiry)}
-                        </p>
-                      </div>
-                      {isCritical && (
-                        <AlertTriangle className="h-3.5 w-3.5 text-vault-red ml-2 flex-shrink-0" />
-                      )}
+                          {item.repair_count}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="py-12 text-center text-vault-muted-text text-sm">
+              {t('analytics.noRepairData')}
+            </div>
+          )}
+        </Card>
+
+        {/* 6. Warranty Expiry */}
+        <Card>
+          <CardHeader>
+            <CardTitle>
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-vault-muted-text" />
+                {t('analytics.warrantyExpiring')}
+              </div>
+            </CardTitle>
+            <span className="text-xs text-vault-muted-text">{t('analytics.next90days')}</span>
+          </CardHeader>
+          {warrantyExpiring.length > 0 ? (
+            <div className="space-y-1.5 max-h-[340px] overflow-y-auto">
+              {warrantyExpiring.map((item: any) => {
+                const days = item.days_remaining ?? 0
+                const isCritical = days <= 30
+                const isWarning = days <= 60 && days > 30
+
+                return (
+                  <div
+                    key={item.id}
+                    className={`flex items-center justify-between px-3 py-2.5 rounded-lg border transition-colors ${
+                      isCritical
+                        ? 'bg-danger-soft border-vault-border hover:border-vault-border-focus'
+                        : isWarning
+                        ? 'bg-warn-soft border-vault-border hover:border-vault-border-focus'
+                        : 'bg-vault-muted border-vault-border hover:border-vault-border-focus'
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-vault-text font-medium truncate">
+                        {item.name}
+                      </p>
+                      <p className="text-[11px] text-vault-muted-text font-mono">
+                        {item.serial_number}
+                      </p>
                     </div>
-                  )
-                })}
-              </div>
-            ) : (
-              <div className="py-12 text-center text-vault-muted-text text-sm">
-                {t('analytics.noWarranties')}
-              </div>
-            )}
-          </Card>
-        </motion.div>
+                    <div className="text-right flex-shrink-0 ml-3">
+                      <p
+                        className={`text-sm font-semibold font-mono ${
+                          isCritical ? 'text-danger' : isWarning ? 'text-warn' : 'text-vault-green'
+                        }`}
+                      >
+                        {days}d
+                      </p>
+                      <p className="text-[11px] text-vault-muted-text">
+                        {formatDate(item.warranty_expiry)}
+                      </p>
+                    </div>
+                    {isCritical && (
+                      <AlertTriangle className="h-3.5 w-3.5 text-danger ml-2 flex-shrink-0" />
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <div className="py-12 text-center text-vault-muted-text text-sm">
+              {t('analytics.noWarranties')}
+            </div>
+          )}
+        </Card>
       </div>
     </div>
   )

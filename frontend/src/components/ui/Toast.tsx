@@ -77,7 +77,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               transition={{ type: 'spring', damping: 25, stiffness: 300 }}
               className={cn(
                 'flex items-start gap-3 px-4 py-3 rounded-lg border border-vault-border bg-vault-surface',
-                'shadow-[0_0_0_1px_rgba(245,158,11,0.08),0_4px_24px_rgba(0,0,0,0.6)]',
+                'shadow-[0_4px_16px_rgba(12,14,20,0.10)]',
                 'border-l-4',
                 borderColors[t.type]
               )}

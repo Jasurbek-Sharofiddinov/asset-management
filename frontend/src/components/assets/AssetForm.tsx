@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ChevronRight, ChevronLeft, Sparkles } from 'lucide-react'
+import { ChevronRight, ChevronLeft, Lightbulb } from 'lucide-react'
 import { Modal } from '../ui/Modal'
 import { Input } from '../ui/Input'
 import { Select } from '../ui/Select'
@@ -218,7 +218,7 @@ export function AssetForm({ isOpen, onClose, asset }: AssetFormProps) {
               label="Serial Number"
               placeholder="e.g., SN-2024-001"
               error={errors.serial_number?.message}
-              className="font-[family-name:var(--font-mono)] text-[13px]"
+              className="font-mono text-[13px]"
               {...register('serial_number')}
             />
             <Select
@@ -231,12 +231,12 @@ export function AssetForm({ isOpen, onClose, asset }: AssetFormProps) {
               <button
                 type="button"
                 onClick={applyAiSuggestion}
-                className="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-vault-amber/8 border border-vault-amber/20 hover:bg-vault-amber/15 transition-colors text-left group -mt-2"
+                className="flex items-center gap-2 w-full px-3 py-2 rounded-lg bg-vault-muted border border-vault-border hover:bg-vault-muted/70 transition-colors text-left -mt-2"
               >
-                <Sparkles className="h-3.5 w-3.5 text-vault-amber flex-shrink-0" />
+                <Lightbulb className="h-3.5 w-3.5 text-vault-amber flex-shrink-0" />
                 <span className="flex-1 text-[12px] text-vault-muted-text">
-                  AI suggests: <span className="text-vault-amber font-semibold">{aiSuggestion.category}</span>
-                  <span className="text-vault-muted-text" style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace" }}> ({Math.round(aiSuggestion.confidence * 100)}% confidence)</span>
+                  Suggested: <span className="text-vault-text font-semibold">{aiSuggestion.category}</span>
+                  <span className="font-mono text-vault-muted-text"> ({Math.round(aiSuggestion.confidence * 100)}% confidence)</span>
                   <span className="text-vault-muted-text/60"> — Click to apply</span>
                 </span>
               </button>
@@ -291,7 +291,7 @@ export function AssetForm({ isOpen, onClose, asset }: AssetFormProps) {
               <textarea
                 placeholder="Optional description..."
                 rows={3}
-                className="w-full px-3 py-2 bg-vault-black border border-vault-border rounded-lg text-vault-text text-sm placeholder:text-vault-muted-text/50 focus:outline-none focus:ring-2 focus:ring-vault-amber/40 focus:border-vault-amber/50 transition-all resize-none"
+                className="w-full px-3 py-2 bg-vault-surface border border-vault-border rounded-lg text-vault-text text-sm placeholder:text-vault-muted-text/50 focus:outline-none focus:ring-2 focus:ring-vault-amber/20 focus:border-vault-border-focus transition-all resize-none"
                 {...register('description')}
               />
             </div>

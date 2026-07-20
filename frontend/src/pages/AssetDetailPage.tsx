@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { motion } from 'framer-motion'
 import { QRCodeSVG } from 'qrcode.react'
 import {
   ArrowLeft,
@@ -154,19 +153,15 @@ export default function AssetDetailPage() {
           Back to Assets
         </button>
 
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col md:flex-row md:items-start justify-between gap-4"
-        >
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="font-[family-name:var(--font-display)] text-2xl font-bold text-vault-text">
+              <h1 className="text-2xl font-semibold text-vault-text">
                 {asset.name}
               </h1>
               <StatusBadge status={asset.status} />
             </div>
-            <p className="font-[family-name:var(--font-mono)] text-[13px] text-vault-muted-text">
+            <p className="font-mono text-[13px] text-vault-muted-text">
               {asset.serial_number}
             </p>
             {asset.brand && (
@@ -198,7 +193,7 @@ export default function AssetDetailPage() {
               </Button>
             )}
           </div>
-        </motion.div>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -207,7 +202,7 @@ export default function AssetDetailPage() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === tab.id
                 ? 'bg-vault-amber/10 text-vault-amber'
                 : 'text-vault-muted-text hover:text-vault-text'
@@ -224,7 +219,7 @@ export default function AssetDetailPage() {
           {/* Metadata Grid */}
           <div className="lg:col-span-2">
             <Card>
-              <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold text-vault-text mb-4">
+              <h3 className="text-lg font-semibold text-vault-text mb-4">
                 Asset Details
               </h3>
               <div className="grid grid-cols-2 gap-4">
@@ -258,11 +253,11 @@ export default function AssetDetailPage() {
                     icon: Clock,
                   },
                 ].map((field) => (
-                  <div key={field.label} className="p-3 rounded-lg bg-vault-black/50 border border-vault-border/30">
+                  <div key={field.label} className="p-3 rounded-lg bg-vault-muted border border-vault-border">
                     <p className="text-xs text-vault-muted-text mb-1">{field.label}</p>
                     <p
                       className={`text-sm text-vault-text ${
-                        field.mono ? 'font-[family-name:var(--font-mono)] text-[13px]' : ''
+                        field.mono ? 'font-mono text-[13px]' : ''
                       }`}
                     >
                       {field.value}
@@ -271,7 +266,7 @@ export default function AssetDetailPage() {
                 ))}
               </div>
               {asset.description && (
-                <div className="mt-4 p-3 rounded-lg bg-vault-black/50 border border-vault-border/30">
+                <div className="mt-4 p-3 rounded-lg bg-vault-muted border border-vault-border">
                   <p className="text-xs text-vault-muted-text mb-1">Description</p>
                   <p className="text-sm text-vault-text">{asset.description}</p>
                 </div>
@@ -283,13 +278,13 @@ export default function AssetDetailPage() {
           <div className="space-y-4">
             {/* Current Assignment */}
             <Card>
-              <h3 className="font-[family-name:var(--font-display)] text-base font-semibold text-vault-text mb-3">
+              <h3 className="text-base font-semibold text-vault-text mb-3">
                 Current Assignment
               </h3>
               {asset.status === 'ASSIGNED' ? (
                 <div className="space-y-2">
                   {asset.current_employee_name && (
-                    <div className="p-3 rounded-lg bg-vault-green/5 border border-vault-green/20">
+                    <div className="p-3 rounded-lg bg-vault-muted border border-vault-border">
                       <p className="text-xs text-vault-muted-text">Employee</p>
                       <p className="text-sm text-vault-text font-medium">
                         {asset.current_employee_name}
@@ -297,7 +292,7 @@ export default function AssetDetailPage() {
                     </div>
                   )}
                   {asset.current_department_name && (
-                    <div className="p-3 rounded-lg bg-vault-blue/5 border border-vault-blue/20">
+                    <div className="p-3 rounded-lg bg-vault-muted border border-vault-border">
                       <p className="text-xs text-vault-muted-text">Department</p>
                       <p className="text-sm text-vault-text font-medium">
                         {asset.current_department_name}
@@ -305,7 +300,7 @@ export default function AssetDetailPage() {
                     </div>
                   )}
                   {asset.current_branch_name && (
-                    <div className="p-3 rounded-lg bg-vault-muted/10 border border-vault-border">
+                    <div className="p-3 rounded-lg bg-vault-muted border border-vault-border">
                       <p className="text-xs text-vault-muted-text">Branch</p>
                       <p className="text-sm text-vault-text font-medium">
                         {asset.current_branch_name}
@@ -323,7 +318,7 @@ export default function AssetDetailPage() {
             {/* Warranty Status */}
             {asset.warranty_expiry && (
               <Card>
-                <h3 className="font-[family-name:var(--font-display)] text-base font-semibold text-vault-text mb-3">
+                <h3 className="text-base font-semibold text-vault-text mb-3">
                   Warranty Status
                 </h3>
                 {(() => {
@@ -339,19 +334,19 @@ export default function AssetDetailPage() {
                     <div
                       className={`p-3 rounded-lg border ${
                         isExpired
-                          ? 'bg-vault-red/5 border-vault-red/20'
+                          ? 'bg-danger-soft border-danger/20'
                           : isExpiringSoon
-                          ? 'bg-vault-yellow/5 border-vault-yellow/20'
-                          : 'bg-vault-green/5 border-vault-green/20'
+                          ? 'bg-warn-soft border-warn/20'
+                          : 'bg-ok-soft border-ok/20'
                       }`}
                     >
                       <p
                         className={`text-sm font-medium ${
                           isExpired
-                            ? 'text-vault-red'
+                            ? 'text-danger'
                             : isExpiringSoon
-                            ? 'text-vault-yellow'
-                            : 'text-vault-green'
+                            ? 'text-warn'
+                            : 'text-ok'
                         }`}
                       >
                         {isExpired
@@ -369,7 +364,7 @@ export default function AssetDetailPage() {
 
             {/* Quick Status Actions */}
             <Card>
-              <h3 className="font-[family-name:var(--font-display)] text-base font-semibold text-vault-text mb-3">
+              <h3 className="text-base font-semibold text-vault-text mb-3">
                 Quick Actions
               </h3>
               <div className="space-y-2">
@@ -377,7 +372,7 @@ export default function AssetDetailPage() {
                   <button
                     key={action.status}
                     onClick={() => setShowStatusModal(action.status)}
-                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-vault-text hover:bg-vault-muted/30 border border-vault-border/50 transition-colors"
+                    className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-vault-text hover:bg-vault-muted border border-vault-border transition-colors"
                   >
                     <action.icon className={`h-4 w-4 ${action.color}`} />
                     {action.label}
@@ -391,7 +386,7 @@ export default function AssetDetailPage() {
 
       {activeTab === 'history' && (
         <Card>
-          <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold text-vault-text mb-4">
+          <h3 className="text-lg font-semibold text-vault-text mb-4">
             Assignment History
           </h3>
           {history.length > 0 ? (
@@ -399,17 +394,14 @@ export default function AssetDetailPage() {
               <div className="absolute left-[15px] top-0 bottom-0 w-px bg-vault-border" />
               <div className="space-y-4">
                 {history.map((event: any, idx: number) => (
-                  <motion.div
+                  <div
                     key={event.id || idx}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: idx * 0.05 }}
                     className="relative flex gap-4 pl-10"
                   >
                     <div className={`absolute left-[10px] top-2 w-[11px] h-[11px] rounded-full border-2 border-vault-surface z-10 ${event.returned_at ? 'bg-vault-muted-text' : 'bg-vault-amber'}`} />
-                    <div className="flex-1 p-3 rounded-lg bg-vault-black/50 border border-vault-border/50">
+                    <div className="flex-1 p-3 rounded-lg bg-vault-muted border border-vault-border">
                       <div className="flex items-center justify-between gap-2 mb-2">
-                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${event.returned_at ? 'bg-vault-muted/20 text-vault-muted-text' : 'bg-vault-green/10 text-vault-green'}`}>
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${event.returned_at ? 'bg-vault-muted text-vault-muted-text' : 'bg-ok-soft text-ok'}`}>
                           {event.returned_at ? 'Returned' : 'Active'}
                         </span>
                         <span className="text-xs text-vault-muted-text">
@@ -452,7 +444,7 @@ export default function AssetDetailPage() {
                         <p className="text-xs text-vault-muted-text mt-1">Note: {event.notes}</p>
                       )}
                     </div>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
             </div>
@@ -466,10 +458,10 @@ export default function AssetDetailPage() {
 
       {activeTab === 'qr' && (
         <Card className="flex flex-col items-center py-8">
-          <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold text-vault-text mb-6">
+          <h3 className="text-lg font-semibold text-vault-text mb-6">
             QR Code
           </h3>
-          <div className="p-6 bg-white rounded-2xl mb-6">
+          <div className="p-6 bg-white rounded-2xl border border-vault-border mb-6">
             <QRCodeSVG
               id="asset-qr-code"
               value={`${window.location.origin}/assets/${asset.id}`}
@@ -478,7 +470,7 @@ export default function AssetDetailPage() {
               includeMargin={false}
             />
           </div>
-          <p className="font-[family-name:var(--font-mono)] text-[13px] text-vault-muted-text mb-6">
+          <p className="font-mono text-[13px] text-vault-muted-text mb-6">
             {asset.serial_number}
           </p>
           <div className="flex gap-3">
@@ -496,7 +488,7 @@ export default function AssetDetailPage() {
 
       {activeTab === 'assignments' && (
         <Card>
-          <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold text-vault-text mb-4">
+          <h3 className="text-lg font-semibold text-vault-text mb-4">
             Assignment History
           </h3>
           {assignments.length > 0 ? (
@@ -567,15 +559,11 @@ export default function AssetDetailPage() {
       {showStatusModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-vault-text/40"
             onClick={() => setShowStatusModal(null)}
           />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="relative bg-vault-surface border border-vault-border rounded-xl p-6 w-full max-w-md shadow-2xl"
-          >
-            <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold text-vault-text mb-2">
+          <div className="relative bg-vault-surface border border-vault-border rounded-xl p-6 w-full max-w-md shadow-xl">
+            <h3 className="text-lg font-semibold text-vault-text mb-2">
               Change Status to {showStatusModal.replace('_', ' ')}
             </h3>
             <p className="text-sm text-vault-muted-text mb-4">
@@ -590,7 +578,7 @@ export default function AssetDetailPage() {
                 onChange={(e) => setStatusChangeReason(e.target.value)}
                 rows={3}
                 placeholder="Enter reason for status change..."
-                className="w-full px-3 py-2 bg-vault-black border border-vault-border rounded-lg text-vault-text text-sm placeholder:text-vault-muted-text/50 focus:outline-none focus:ring-2 focus:ring-vault-amber/40 focus:border-vault-amber/50 transition-all resize-none"
+                className="w-full px-3 py-2 bg-vault-surface border border-vault-border rounded-lg text-vault-text text-sm placeholder:text-vault-muted-text/50 focus:outline-none focus:ring-2 focus:ring-vault-amber/30 focus:border-vault-amber/40 transition-all resize-none"
               />
             </div>
             <div className="flex justify-end gap-3">
@@ -614,7 +602,7 @@ export default function AssetDetailPage() {
                 Confirm
               </Button>
             </div>
-          </motion.div>
+          </div>
         </div>
       )}
 

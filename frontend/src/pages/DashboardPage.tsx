@@ -1,63 +1,34 @@
 import { useQuery } from '@tanstack/react-query'
-import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import {
   Package,
   UserCheck,
   Wrench,
   AlertTriangle,
   XCircle,
-  ArrowUpRight,
-  Sparkles,
-  ShieldAlert,
-  Lightbulb,
-  TrendingUp,
-  ChevronRight,
-  RefreshCw,
-  Brain,
-  ShoppingCart,
-  Calendar,
-  DollarSign,
+  LayoutGrid,
+  List,
 } from 'lucide-react'
 import {
   PieChart, Pie, Cell,
   ResponsiveContainer,
 } from 'recharts'
-import { analyticsApi, auditApi, aiApi, referenceApi } from '../lib/api'
+import { analyticsApi, auditApi, referenceApi } from '../lib/api'
 import { Card, CardHeader, CardTitle } from '../components/ui/Card'
 import { ActionBadge } from '../components/ui/Badge'
 import { PageLoader } from '../components/ui/LoadingSpinner'
 import { formatCurrency, formatDateTime } from '../lib/utils'
-import { useEffect, useState, useRef } from 'react'
+import { useState } from 'react'
 import { useLanguageStore } from '../stores/languageStore'
 
-/* ── Colors ── */
+/* ── Status colors (tuned for light) ── */
 const STATUS_COLORS: Record<string, string> = {
-  REGISTERED: '#8E8EA8', ASSIGNED: '#22C55E', IN_REPAIR: '#F97316',
-  LOST: '#EF4444', WRITTEN_OFF: '#4B5563',
-}
-const CAT_COLORS = ['#F5A623', '#22C55E', '#3B82F6', '#F87171', '#A78BFA', '#EC4899', '#2DD4BF', '#FB923C', '#94A3B8']
-const DEPT_COLORS: Record<string, string> = {
-  Operations: '#F5A623', Management: '#22C55E', HR: '#3B82F6', IT: '#F87171',
-  'Customer Service': '#A78BFA', Finance: '#2DD4BF', Security: '#FB923C', Legal: '#EC4899',
+  REGISTERED: '#6B7280', ASSIGNED: '#16A34A', IN_REPAIR: '#EA580C',
+  LOST: '#DC2626', WRITTEN_OFF: '#9CA3AF',
 }
 
-/* ── Animated counter ── */
-function Counter({ target, duration = 1100 }: { target: number; duration?: number }) {
-  const [count, setCount] = useState(0)
-  const raf = useRef<number | null>(null)
-  useEffect(() => {
-    if (target === 0) { setCount(0); return }
-    const t0 = performance.now()
-    const tick = (now: number) => {
-      const p = Math.min((now - t0) / duration, 1)
-      setCount(Math.round((1 - Math.pow(1 - p, 4)) * target))
-      if (p < 1) raf.current = requestAnimationFrame(tick)
-    }
-    raf.current = requestAnimationFrame(tick)
-    return () => { if (raf.current) cancelAnimationFrame(raf.current) }
-  }, [target, duration])
-  return <>{count.toLocaleString()}</>
-}
+/* Single neutral slate accent for bars */
+const SLATE = '#17233D'
 
 function RelativeTime({ date }: { date: string }) {
   const ms = Date.now() - new Date(date).getTime()
@@ -69,161 +40,104 @@ function RelativeTime({ date }: { date: string }) {
   return <span>{formatDateTime(date)}</span>
 }
 
-const stagger = {
-  container: { show: { transition: { staggerChildren: 0.05 } } },
-  item: { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0, transition: { duration: 0.35 } } },
-}
-
-/* ── Squarified treemap layout algorithm ── */
-interface TreemapRect { x: number; y: number; w: number; h: number; item: { name: string; count: number }; idx: number }
-
-function squarify(items: { name: string; count: number }[], W: number, H: number): TreemapRect[] {
-  if (!items.length) return []
-  const totalVal = items.reduce((s, d) => s + d.count, 0)
-  if (totalVal === 0) return []
-
-  // Normalize areas to total pixel area
-  const totalArea = W * H
-  const data = items.map((d, i) => ({ ...d, area: (d.count / totalVal) * totalArea, idx: i }))
-
-  const rects: TreemapRect[] = []
-  let x = 0, y = 0, w = W, h = H
-
-  function layoutRow(row: typeof data, rowArea: number, isHorizontal: boolean) {
-    if (isHorizontal) {
-      const rowW = rowArea / h
-      let cy = y
-      for (const d of row) {
-        const dh = d.area / rowW
-        rects.push({ x, y: cy, w: rowW, h: dh, item: d, idx: d.idx })
-        cy += dh
-      }
-      x += rowW; w -= rowW
-    } else {
-      const rowH = rowArea / w
-      let cx = x
-      for (const d of row) {
-        const dw = d.area / rowH
-        rects.push({ x: cx, y, w: dw, h: rowH, item: d, idx: d.idx })
-        cx += dw
-      }
-      y += rowH; h -= rowH
-    }
-  }
-
-  function worstRatio(row: typeof data, side: number): number {
-    const rowArea = row.reduce((s, d) => s + d.area, 0)
-    let worst = 0
-    for (const d of row) {
-      const rowLen = rowArea / side
-      const itemLen = d.area / rowLen
-      const ratio = Math.max(rowLen / itemLen, itemLen / rowLen)
-      worst = Math.max(worst, ratio)
-    }
-    return worst
-  }
-
-  let remaining = [...data]
-  while (remaining.length > 0) {
-    const isHorizontal = w < h
-    const side = isHorizontal ? h : w
-    const row = [remaining[0]]
-    remaining = remaining.slice(1)
-
-    while (remaining.length > 0) {
-      const candidate = [...row, remaining[0]]
-      if (worstRatio(candidate, side) <= worstRatio(row, side)) {
-        row.push(remaining[0])
-        remaining = remaining.slice(1)
-      } else break
-    }
-
-    const rowArea = row.reduce((s, d) => s + d.area, 0)
-    layoutRow(row, rowArea, isHorizontal)
-  }
-
-  return rects
-}
-
-function SquarifiedTreemap({ data }: { data: { name: string; count: number }[]; total: number }) {
-  const W = 600, H = 220
-  const GAP = 3
-  const rects = squarify(data, W, H)
+/* ── Neutral category breakdown: grid / list toggle ── */
+function CategoryBreakdown({
+  data,
+  onSelect,
+  title,
+  headerLabel,
+}: {
+  data: { name: string; count: number }[]
+  onSelect: (name: string) => void
+  title: string
+  headerLabel: string
+}) {
+  const [view, setView] = useState<'grid' | 'list'>('grid')
   const catTotal = data.reduce((s, c) => s + c.count, 0)
 
   return (
-    <div className="relative w-full" style={{ paddingBottom: `${(H / W) * 100}%` }}>
-      <div className="absolute inset-0">
-        {rects.map((r, i) => {
-          const pctX = (r.x / W) * 100, pctY = (r.y / H) * 100
-          const pctW = (r.w / W) * 100, pctH = (r.h / H) * 100
-          const color = CAT_COLORS[r.idx % CAT_COLORS.length]
-          const pctVal = catTotal > 0 ? (r.item.count / catTotal) * 100 : 0
-          const isLarge = pctW > 15 && pctH > 30
-
-          return (
-            <motion.div
-              key={r.item.name}
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4, delay: i * 0.04 }}
-              className="absolute group cursor-default overflow-hidden"
-              style={{
-                left: `calc(${pctX}% + ${GAP / 2}px)`,
-                top: `calc(${pctY}% + ${GAP / 2}px)`,
-                width: `calc(${pctW}% - ${GAP}px)`,
-                height: `calc(${pctH}% - ${GAP}px)`,
-                backgroundColor: color,
-                borderRadius: 8,
-              }}
+    <>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] text-vault-muted-text">{headerLabel}</span>
+          <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-vault-muted">
+            <button
+              onClick={() => setView('grid')}
+              aria-label="Grid view"
+              aria-pressed={view === 'grid'}
+              className={`p-1 rounded-md transition-colors ${view === 'grid' ? 'bg-vault-surface text-vault-text shadow-sm' : 'text-vault-muted-text hover:text-vault-text'}`}
             >
-              {/* Overlay for depth */}
-              <div className="absolute inset-0 bg-black/25 group-hover:bg-black/10 transition-all duration-200" />
-
-              {/* Content */}
-              <div className="relative h-full flex flex-col justify-between p-2.5">
-                <span className="text-[10px] font-bold text-white/85 uppercase tracking-[1.5px] leading-tight">
-                  {r.item.name}
+              <LayoutGrid className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => setView('list')}
+              aria-label="List view"
+              aria-pressed={view === 'list'}
+              className={`p-1 rounded-md transition-colors ${view === 'list' ? 'bg-vault-surface text-vault-text shadow-sm' : 'text-vault-muted-text hover:text-vault-text'}`}
+            >
+              <List className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      </CardHeader>
+      {view === 'grid' ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
+          {data.map((c) => {
+            const pct = catTotal > 0 ? (c.count / catTotal) * 100 : 0
+            return (
+              <button
+                key={c.name}
+                onClick={() => onSelect(c.name)}
+                className="text-left p-3 rounded-lg bg-vault-black border border-vault-border hover:border-vault-border-focus hover:bg-white transition-colors"
+              >
+                <span className="block text-[11px] font-medium text-vault-muted-text uppercase tracking-wide truncate">
+                  {c.name}
                 </span>
-                {isLarge ? (
-                  <div>
-                    <span className="text-[28px] font-medium text-white leading-none block"
-                      style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace" }}>
-                      {r.item.count}
-                    </span>
-                    <span className="text-[12px] text-white/50 font-medium"
-                      style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace" }}>
-                      {pctVal.toFixed(0)}%
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex items-baseline gap-1.5">
-                    <span className="text-[18px] font-medium text-white leading-none"
-                      style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace" }}>
-                      {r.item.count}
-                    </span>
-                    <span className="text-[10px] text-white/50"
-                      style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace" }}>
-                      {pctVal.toFixed(0)}%
-                    </span>
-                  </div>
-                )}
-
-                {/* Bottom progress bar */}
-                <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-black/20">
-                  <div className="h-full bg-white/30 rounded-full" style={{ width: `${pctVal}%` }} />
+                <span className="block text-[22px] font-medium text-vault-text font-mono leading-tight mt-1">
+                  {c.count}
+                </span>
+                <div className="h-[3px] bg-vault-muted rounded-full overflow-hidden mt-2">
+                  <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: SLATE }} />
                 </div>
-              </div>
-            </motion.div>
-          )
-        })}
-      </div>
-    </div>
+              </button>
+            )
+          })}
+        </div>
+      ) : (
+        <div className="space-y-2.5">
+          {data.map((c) => {
+            const pct = catTotal > 0 ? (c.count / catTotal) * 100 : 0
+            return (
+              <button
+                key={c.name}
+                onClick={() => onSelect(c.name)}
+                className="w-full flex items-center gap-3 group text-left"
+              >
+                <span className="text-[13px] text-vault-text w-28 flex-shrink-0 truncate group-hover:text-vault-amber transition-colors">
+                  {c.name}
+                </span>
+                <div className="flex-1 h-[6px] bg-vault-muted rounded-full overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: SLATE }} />
+                </div>
+                <span className="text-[13px] font-medium text-vault-text font-mono tabular-nums w-8 text-right">
+                  {c.count}
+                </span>
+                <span className="text-[11px] text-vault-muted-text font-mono tabular-nums w-9 text-right">
+                  {pct.toFixed(0)}%
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </>
   )
 }
 
 export default function DashboardPage() {
   const { t } = useLanguageStore()
+  const navigate = useNavigate()
   const [selectedBranchId, setSelectedBranchId] = useState<string>('')
 
   const { data: branches } = useQuery({
@@ -235,14 +149,6 @@ export default function DashboardPage() {
   const { data: overview, isLoading } = useQuery({ queryKey: ['analytics', 'overview', selectedBranchId], queryFn: () => analyticsApi.getOverview(branchParams) })
   const { data: recentAudit } = useQuery({ queryKey: ['audit', 'recent'], queryFn: () => auditApi.getAuditLogs({ page: 1, size: 8 }), refetchInterval: 30000 })
   const { data: departmentData } = useQuery({ queryKey: ['analytics', 'departments', selectedBranchId], queryFn: () => analyticsApi.getDepartmentAllocation(branchParams) })
-  const { data: insights, isLoading: insightsLoading, refetch: refetchInsights } = useQuery({
-    queryKey: ['ai', 'insights'], queryFn: aiApi.getInsights, retry: false, staleTime: 5 * 60 * 1000,
-    enabled: false, // manual trigger
-  })
-  const { data: predictions, isLoading: predictionsLoading, refetch: refetchPredictions } = useQuery({
-    queryKey: ['ai', 'predictions'], queryFn: aiApi.getPredictions, retry: false, staleTime: 5 * 60 * 1000,
-    enabled: false, // manual trigger
-  })
 
   if (isLoading) return <PageLoader />
 
@@ -259,31 +165,31 @@ export default function DashboardPage() {
   }
 
   const kpis = [
-    { label: t('kpi.totalAssets'), value: total, sub: formatCurrency(totalVal), icon: Package, color: '#F5A623', bg: 'rgba(245,166,35,0.12)' },
-    { label: t('kpi.assigned'), value: assigned, sub: `${pct}% ${t('kpi.utilization')}`, icon: UserCheck, color: '#22C55E', bg: 'rgba(34,197,94,0.12)', trend: pct },
-    { label: t('kpi.inRepair'), value: s['IN_REPAIR'] || 0, sub: t('kpi.pendingService'), icon: Wrench, color: '#F97316', bg: 'rgba(249,115,22,0.12)' },
-    { label: t('kpi.lost'), value: s['LOST'] || 0, sub: t('kpi.underInvestigation'), icon: AlertTriangle, color: '#EF4444', bg: 'rgba(239,68,68,0.12)' },
-    { label: t('kpi.writtenOff'), value: s['WRITTEN_OFF'] || 0, sub: t('kpi.decommissioned'), icon: XCircle, color: '#4B5563', bg: 'rgba(75,85,99,0.12)' },
+    { label: t('kpi.totalAssets'), value: total, sub: formatCurrency(totalVal), icon: Package, color: '#6B7280', to: '/assets' },
+    { label: t('kpi.assigned'), value: assigned, sub: `${pct}% ${t('kpi.utilization')}`, icon: UserCheck, color: '#16A34A', to: '/assets?status=ASSIGNED' },
+    { label: t('kpi.inRepair'), value: s['IN_REPAIR'] || 0, sub: t('kpi.pendingService'), icon: Wrench, color: '#EA580C', to: '/assets?status=IN_REPAIR' },
+    { label: t('kpi.lost'), value: s['LOST'] || 0, sub: t('kpi.underInvestigation'), icon: AlertTriangle, color: '#DC2626', to: '/assets?status=LOST' },
+    { label: t('kpi.writtenOff'), value: s['WRITTEN_OFF'] || 0, sub: t('kpi.decommissioned'), icon: XCircle, color: '#9CA3AF', to: '/assets?status=WRITTEN_OFF' },
   ]
 
   const statusData = Object.entries(s).filter(([, v]) => (v as number) > 0)
     .sort(([, a], [, b]) => (b as number) - (a as number))
-    .map(([k, v]) => ({ name: k, label: STATUS_LABELS[k] || k, value: v as number, color: STATUS_COLORS[k] || '#4B5563', pct: total > 0 ? Math.round(((v as number) / total) * 100) : 0 }))
+    .map(([k, v]) => ({ name: k, label: STATUS_LABELS[k] || k, value: v as number, color: STATUS_COLORS[k] || '#6B7280', pct: total > 0 ? Math.round(((v as number) / total) * 100) : 0 }))
 
   const catData = Object.entries(cat).map(([k, v]) => ({ name: k, count: v as number })).sort((a, b) => b.count - a.count)
   const depts = ((departmentData as any[]) || []).sort((a: any, b: any) => (b.asset_count || 0) - (a.asset_count || 0))
   const maxDept = Math.max(...depts.map((d: any) => d.asset_count || 0), 1)
 
   return (
-    <motion.div className="space-y-5" variants={stagger.container} initial="hidden" animate="show">
+    <div className="space-y-5">
 
-      {/* ── Branch Filter ── */}
+      {/* ── Toolbar: branch filter only (Header shows the page name) ── */}
       <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-vault-text" style={{ fontFamily: "'Syne', sans-serif" }}>{t('dashboard.title')}</h1>
+        <p className="text-[13px] text-vault-muted-text">{t('dashboard.title')}</p>
         <select
           value={selectedBranchId}
           onChange={(e) => setSelectedBranchId(e.target.value)}
-          className="px-3 py-1.5 bg-vault-surface border border-vault-border rounded-lg text-xs text-vault-text focus:outline-none focus:ring-2 focus:ring-vault-amber/30 focus:border-vault-amber/40 transition-all"
+          className="px-3 py-1.5 bg-vault-surface border border-vault-border rounded-lg text-xs text-vault-text focus:outline-none focus:ring-2 focus:ring-vault-amber/20 focus:border-vault-border-focus transition-all"
         >
           <option value="">{t('dashboard.allBranches')}</option>
           {branches?.map((branch) => (
@@ -297,37 +203,34 @@ export default function DashboardPage() {
       {/* ── KPI Row ── */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
         {kpis.map((k) => (
-          <motion.div key={k.label} variants={stagger.item}>
-            <Card hover className="h-full">
-              <div className="flex items-start justify-between mb-4">
-                <span className="text-[10px] font-semibold uppercase tracking-[1.5px] text-vault-muted-text">{k.label}</span>
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: k.bg }}>
-                  <k.icon className="h-4 w-4" style={{ color: k.color }} />
-                </div>
+          <button
+            key={k.label}
+            onClick={() => navigate(k.to)}
+            className="text-left bg-vault-surface border border-vault-border rounded-[14px] p-6 hover:border-vault-border-focus hover:shadow-sm transition-[border-color,box-shadow] duration-150 focus:outline-none focus:ring-2 focus:ring-vault-amber/20"
+          >
+            <div className="flex items-start justify-between mb-4">
+              <span className="text-[10px] font-semibold uppercase tracking-[1.5px] text-vault-muted-text">{k.label}</span>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-vault-muted">
+                <k.icon className="h-4 w-4" style={{ color: k.color }} />
               </div>
-              <div className="flex items-end gap-2 mb-1">
-                <span className="text-[40px] leading-[1] font-medium tracking-tight" style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace", color: k.color, fontWeight: 500 }}>
-                  <Counter target={k.value} />
-                </span>
-                {k.trend !== undefined && (
-                  <span className="flex items-center gap-0.5 text-[12px] font-semibold text-vault-green mb-2">
-                    <ArrowUpRight className="h-3 w-3" />{k.trend}%
-                  </span>
-                )}
-              </div>
-              <p className="text-[12px] text-vault-muted-text">{k.sub}</p>
-            </Card>
-          </motion.div>
+            </div>
+            <div className="mb-1">
+              <span className="text-[40px] leading-[1] font-medium tracking-tight font-mono text-vault-text">
+                {k.value.toLocaleString()}
+              </span>
+            </div>
+            <p className="text-[12px] text-vault-muted-text">{k.sub}</p>
+          </button>
         ))}
       </div>
 
       {/* ── Charts Row ── */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
         {/* Status Distribution */}
-        <motion.div variants={stagger.item} className="lg:col-span-2">
+        <div className="lg:col-span-2">
           <Card className="h-full">
             <CardHeader><CardTitle>{t('dashboard.statusDistribution')}</CardTitle>
-              <span className="text-[18px] font-medium text-vault-amber" style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace" }}>{total}</span>
+              <span className="text-[18px] font-medium text-vault-text font-mono">{total}</span>
             </CardHeader>
             {statusData.length > 0 && (
               <div className="flex items-center gap-5">
@@ -339,249 +242,65 @@ export default function DashboardPage() {
                   </ResponsiveContainer>
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                     <span className="text-[9px] text-vault-muted-text uppercase tracking-[1.5px]">{t('dashboard.active')}</span>
-                    <span className="text-base font-semibold text-vault-text" style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace" }}>{pct}%</span>
+                    <span className="text-base font-semibold text-vault-text font-mono">{pct}%</span>
                   </div>
                 </div>
                 <div className="flex-1 space-y-2.5">
                   {statusData.map((item) => (
-                    <div key={item.name}>
+                    <button
+                      key={item.name}
+                      onClick={() => navigate(`/assets?status=${item.name}`)}
+                      className="w-full text-left group"
+                    >
                       <div className="flex items-center justify-between mb-1">
                         <div className="flex items-center gap-2">
                           <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: item.color }} />
-                          <span className="text-[12px] text-vault-muted-text">{item.label}</span>
+                          <span className="text-[12px] text-vault-muted-text group-hover:text-vault-text transition-colors">{item.label}</span>
                         </div>
-                        <span className="text-[12px] font-medium text-vault-text tabular-nums" style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace" }}>{item.value}</span>
+                        <span className="text-[12px] font-medium text-vault-text tabular-nums font-mono">{item.value}</span>
                       </div>
-                      <div className="h-[3px] bg-vault-muted/30 rounded-full overflow-hidden">
-                        <motion.div className="h-full rounded-full" style={{ backgroundColor: item.color }}
-                          initial={{ width: 0 }} animate={{ width: `${item.pct}%` }}
-                          transition={{ duration: 0.7, delay: 0.2 }} />
+                      <div className="h-[3px] bg-vault-muted rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ backgroundColor: item.color, width: `${item.pct}%` }} />
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               </div>
             )}
           </Card>
-        </motion.div>
+        </div>
 
-        {/* Category Breakdown — Squarified Treemap */}
-        <motion.div variants={stagger.item} className="lg:col-span-3">
+        {/* Category Breakdown — neutral grid / list */}
+        <div className="lg:col-span-3">
           <Card className="h-full">
-            <CardHeader><CardTitle>{t('dashboard.assetCategories')}</CardTitle>
-              <span className="text-[11px] text-vault-muted-text">{Object.keys(cat).length} {t('dashboard.categories')} &middot; {total} {t('dashboard.assets')}</span>
-            </CardHeader>
-            {catData.length > 0 && <SquarifiedTreemap data={catData} total={total} />}
-          </Card>
-        </motion.div>
-      </div>
-
-      {/* ── AI Panels Row ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-        {/* AI Insights */}
-        <motion.div variants={stagger.item}>
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle><div className="flex items-center gap-1.5"><Sparkles className="h-3.5 w-3.5 text-vault-amber" />{t('ai.insights')}</div></CardTitle>
-              <button onClick={() => refetchInsights()} className="text-[10px] uppercase tracking-wider text-vault-muted-text hover:text-vault-amber transition-colors flex items-center gap-1">
-                <RefreshCw className={`h-3 w-3 ${insightsLoading ? 'animate-spin' : ''}`} />{t('ai.generate')}
-              </button>
-            </CardHeader>
-
-            {insights && !insights.error ? (
-              <div className="space-y-4">
-                <p className="text-[13px] text-vault-text leading-relaxed">{insights.summary}</p>
-
-                {insights.highlights?.length > 0 && (
-                  <div>
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <TrendingUp className="h-3 w-3 text-vault-green" />
-                      <span className="text-[10px] font-bold uppercase tracking-[1.5px] text-vault-muted-text">{t('ai.highlights')}</span>
-                    </div>
-                    <div className="space-y-1.5">
-                      {insights.highlights.map((h: string, i: number) => (
-                        <div key={i} className="flex gap-2 text-[12px] text-vault-muted-text">
-                          <ChevronRight className="h-3 w-3 mt-0.5 text-vault-green flex-shrink-0" />
-                          <span>{h}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {insights.risks?.length > 0 && (
-                  <div>
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <ShieldAlert className="h-3 w-3 text-vault-red" />
-                      <span className="text-[10px] font-bold uppercase tracking-[1.5px] text-vault-muted-text">{t('ai.risks')}</span>
-                    </div>
-                    <div className="space-y-1.5">
-                      {insights.risks.map((r: string, i: number) => (
-                        <div key={i} className="flex gap-2 text-[12px] text-vault-muted-text">
-                          <ChevronRight className="h-3 w-3 mt-0.5 text-vault-red flex-shrink-0" />
-                          <span>{r}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {insights.recommendations?.length > 0 && (
-                  <div>
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <Lightbulb className="h-3 w-3 text-vault-amber" />
-                      <span className="text-[10px] font-bold uppercase tracking-[1.5px] text-vault-muted-text">{t('ai.actions')}</span>
-                    </div>
-                    <div className="space-y-1.5">
-                      {insights.recommendations.map((r: string, i: number) => (
-                        <div key={i} className="flex gap-2 text-[12px] text-vault-muted-text">
-                          <ChevronRight className="h-3 w-3 mt-0.5 text-vault-amber flex-shrink-0" />
-                          <span>{r}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : insights?.error ? (
-              <div className="py-8 text-center">
-                <p className="text-[12px] text-vault-red mb-1">{t('ai.insightsError')}</p>
-                <p className="text-[11px] text-vault-muted-text">{t('ai.checkApiKey')}</p>
-              </div>
-            ) : (
-              <div className="py-10 text-center">
-                <Sparkles className="h-8 w-8 text-vault-amber/20 mx-auto mb-3" />
-                <p className="text-[13px] text-vault-muted-text mb-1">{t('ai.insightsPlaceholder')}</p>
-                <p className="text-[11px] text-vault-disabled">{t('ai.insightsClickGenerate')}</p>
-              </div>
+            {catData.length > 0 && (
+              <CategoryBreakdown
+                data={catData}
+                title={t('dashboard.assetCategories')}
+                headerLabel={`${Object.keys(cat).length} ${t('dashboard.categories')}`}
+                onSelect={(name) => navigate(`/assets?category=${name}`)}
+              />
             )}
           </Card>
-        </motion.div>
-
-        {/* AI Predictions */}
-        <motion.div variants={stagger.item}>
-          <Card className="h-full">
-            <CardHeader>
-              <CardTitle><div className="flex items-center gap-1.5"><Brain className="h-3.5 w-3.5 text-purple-400" />{t('ai.predictions')}</div></CardTitle>
-              <button onClick={() => refetchPredictions()} className="text-[10px] uppercase tracking-wider text-vault-muted-text hover:text-purple-400 transition-colors flex items-center gap-1">
-                <RefreshCw className={`h-3 w-3 ${predictionsLoading ? 'animate-spin' : ''}`} />{t('ai.generate')}
-              </button>
-            </CardHeader>
-
-            {predictions && !predictions.error ? (
-              <div className="space-y-4 max-h-[400px] overflow-y-auto">
-                {/* Predicted Purchases */}
-                {predictions.predicted_purchases?.length > 0 && (
-                  <div>
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <ShoppingCart className="h-3 w-3 text-vault-amber" />
-                      <span className="text-[10px] font-bold uppercase tracking-[1.5px] text-vault-muted-text">{t('ai.predictedPurchases')}</span>
-                    </div>
-                    <div className="space-y-2">
-                      {predictions.predicted_purchases.map((p, i) => {
-                        const urgencyColor = p.urgency === 'high' ? '#EF4444' : p.urgency === 'medium' ? '#F97316' : '#22C55E'
-                        return (
-                          <div key={i} className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-vault-muted/10 border border-vault-border/50">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-0.5">
-                                <span className="text-[12px] font-medium text-vault-text">{p.category}</span>
-                                <span
-                                  className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full"
-                                  style={{ color: urgencyColor, background: `${urgencyColor}18`, border: `1px solid ${urgencyColor}30` }}
-                                >
-                                  {p.urgency}
-                                </span>
-                              </div>
-                              <p className="text-[11px] text-vault-muted-text truncate">{p.reason}</p>
-                            </div>
-                            <div className="text-right flex-shrink-0">
-                              <span className="block text-[14px] font-medium text-vault-text" style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace" }}>
-                                x{p.quantity}
-                              </span>
-                              <span className="block text-[10px] text-vault-muted-text" style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace" }}>
-                                {formatCurrency(p.estimated_budget)}
-                              </span>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {/* Maintenance Forecast */}
-                {predictions.maintenance_forecast?.length > 0 && (
-                  <div>
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <Calendar className="h-3 w-3 text-vault-blue" />
-                      <span className="text-[10px] font-bold uppercase tracking-[1.5px] text-vault-muted-text">{t('ai.maintenanceForecast')}</span>
-                    </div>
-                    <div className="space-y-1.5">
-                      {predictions.maintenance_forecast.map((m, i) => (
-                        <div key={i} className="flex gap-2 text-[12px] text-vault-muted-text px-3 py-2 rounded-lg bg-vault-muted/10 border border-vault-border/50">
-                          <Wrench className="h-3 w-3 mt-0.5 text-vault-blue flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <span className="text-vault-text">{m.description}</span>
-                            <div className="flex items-center gap-3 mt-0.5">
-                              <span className="text-[10px] text-vault-muted-text">{m.timeline}</span>
-                              <span className="text-[10px] text-vault-muted-text" style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace" }}>{m.affected_count} {t('ai.assetsLabel')}</span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Budget Outlook */}
-                {predictions.budget_outlook && (
-                  <div>
-                    <div className="flex items-center gap-1.5 mb-2">
-                      <DollarSign className="h-3 w-3 text-vault-green" />
-                      <span className="text-[10px] font-bold uppercase tracking-[1.5px] text-vault-muted-text">{t('ai.budgetOutlook')}</span>
-                    </div>
-                    <p className="text-[12px] text-vault-muted-text leading-relaxed px-3 py-2 rounded-lg bg-vault-muted/10 border border-vault-border/50">
-                      {predictions.budget_outlook}
-                    </p>
-                  </div>
-                )}
-              </div>
-            ) : predictions?.error ? (
-              <div className="py-8 text-center">
-                <p className="text-[12px] text-vault-red mb-1">{t('ai.predictionsError')}</p>
-                <p className="text-[11px] text-vault-muted-text">{t('ai.checkApiKey')}</p>
-              </div>
-            ) : (
-              <div className="py-10 text-center">
-                <Brain className="h-8 w-8 text-purple-400/20 mx-auto mb-3" />
-                <p className="text-[13px] text-vault-muted-text mb-1">{t('ai.predictionsPlaceholder')}</p>
-                <p className="text-[11px] text-vault-disabled">{t('ai.predictionsClickGenerate')}</p>
-              </div>
-            )}
-          </Card>
-        </motion.div>
+        </div>
       </div>
 
       {/* ── Activity + Departments ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
         {/* Recent Activity */}
-        <motion.div variants={stagger.item}>
+        <div>
           <Card className="h-full">
             <CardHeader>
               <CardTitle>{t('dashboard.liveActivity')}</CardTitle>
-              <div className="flex items-center gap-1.5">
-                <span className="relative flex h-1.5 w-1.5"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-vault-green opacity-75" /><span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-vault-green" /></span>
-                <span className="text-[9px] text-vault-muted-text uppercase tracking-[1.5px]">{t('dashboard.realTime')}</span>
-              </div>
+              <span className="text-[9px] text-vault-muted-text uppercase tracking-[1.5px]">Recent</span>
             </CardHeader>
             <div className="space-y-0.5 max-h-[340px] overflow-y-auto">
               {recentAudit?.items?.length ? recentAudit.items.map((log, i) => (
-                <div key={log.id} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-vault-muted/20 transition-colors group">
+                <div key={log.id} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-vault-muted transition-colors group">
                   <div className="flex flex-col items-center self-stretch py-1">
                     <div className="w-1.5 h-1.5 rounded-full bg-vault-muted-text/30 group-hover:bg-vault-amber transition-colors" />
-                    {i < recentAudit.items.length - 1 && <div className="flex-1 w-px bg-vault-border/50 mt-1" />}
+                    {i < recentAudit.items.length - 1 && <div className="flex-1 w-px bg-vault-border mt-1" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2"><ActionBadge action={log.action} /><span className="text-[9px] text-vault-muted-text uppercase tracking-wider">{log.entity_type}</span></div>
@@ -594,25 +313,23 @@ export default function DashboardPage() {
               )}
             </div>
           </Card>
-        </motion.div>
+        </div>
 
         {/* Departments */}
-        <motion.div variants={stagger.item}>
+        <div>
           <Card className="h-full">
             <CardHeader><CardTitle>{t('dashboard.departments')}</CardTitle><span className="text-[11px] text-vault-muted-text">{depts.length} {t('dashboard.activeDepartments')}</span></CardHeader>
             <div className="space-y-3 max-h-[340px] overflow-y-auto">
-              {depts.map((d: any, i: number) => {
+              {depts.map((d: any) => {
                 const p = Math.round(((d.asset_count || 0) / maxDept) * 100)
-                const c = DEPT_COLORS[d.department] || CAT_COLORS[i % CAT_COLORS.length]
                 return (
                   <div key={d.department}>
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-[13px] font-medium text-vault-text">{d.department}</span>
-                      <span className="text-[16px] font-medium tabular-nums" style={{ fontFamily: "'DM Mono', 'JetBrains Mono', monospace", color: c }}>{d.asset_count || 0}</span>
+                      <span className="text-[16px] font-medium tabular-nums font-mono text-vault-text">{d.asset_count || 0}</span>
                     </div>
-                    <div className="h-[4px] bg-vault-muted/20 rounded-full overflow-hidden">
-                      <motion.div className="h-full rounded-full" style={{ backgroundColor: c, opacity: 0.75 }}
-                        initial={{ width: 0 }} animate={{ width: `${p}%` }} transition={{ duration: 0.6, delay: 0.3 + i * 0.04 }} />
+                    <div className="h-[4px] bg-vault-muted rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ backgroundColor: SLATE, width: `${p}%` }} />
                     </div>
                     <p className="text-[10px] text-vault-muted-text mt-1 tabular-nums">{formatCurrency(d.total_value || 0)}</p>
                   </div>
@@ -620,8 +337,8 @@ export default function DashboardPage() {
               })}
             </div>
           </Card>
-        </motion.div>
+        </div>
       </div>
-    </motion.div>
+    </div>
   )
 }

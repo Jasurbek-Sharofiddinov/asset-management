@@ -78,7 +78,7 @@ export function Pagination({
               className={cn(
                 'min-w-[36px] h-9 rounded-lg text-sm font-medium transition-all duration-200',
                 page === currentPage
-                  ? 'bg-vault-amber text-vault-black'
+                  ? 'bg-vault-amber text-white'
                   : 'text-vault-muted-text hover:text-vault-text hover:bg-vault-muted'
               )}
             >

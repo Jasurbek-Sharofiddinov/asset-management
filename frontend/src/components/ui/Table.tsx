@@ -35,9 +35,9 @@ export function Table<T extends Record<string, any>>({
     if (sortBy !== key)
       return <ChevronsUpDown className="h-3.5 w-3.5 text-vault-muted-text/50" />
     return sortOrder === 'asc' ? (
-      <ChevronUp className="h-3.5 w-3.5 text-vault-amber" />
+      <ChevronUp className="h-3.5 w-3.5 text-vault-text" />
     ) : (
-      <ChevronDown className="h-3.5 w-3.5 text-vault-amber" />
+      <ChevronDown className="h-3.5 w-3.5 text-vault-text" />
     )
   }
 
@@ -45,7 +45,7 @@ export function Table<T extends Record<string, any>>({
     <div className="w-full overflow-x-auto rounded-xl border border-vault-border">
       <table className="w-full text-sm">
         <thead className="sticky top-0 z-10">
-          <tr className="bg-vault-muted/30 border-b border-vault-border">
+          <tr className="bg-vault-muted border-b border-vault-border">
             {columns.map((col) => (
               <th
                 key={col.key}
@@ -70,7 +70,7 @@ export function Table<T extends Record<string, any>>({
               <tr key={i} className="border-b border-vault-border/50">
                 {columns.map((col) => (
                   <td key={col.key} className="px-4 py-3">
-                    <div className="h-4 bg-vault-muted/30 rounded animate-pulse" />
+                    <div className="h-4 bg-vault-muted rounded animate-pulse" />
                   </td>
                 ))}
               </tr>
@@ -89,10 +89,9 @@ export function Table<T extends Record<string, any>>({
               <tr
                 key={item.id ?? index}
                 className={cn(
-                  'border-b border-vault-border/30 transition-colors',
-                  index % 2 === 1 && 'bg-vault-muted/5',
+                  'border-b border-vault-border/60 transition-colors',
                   onRowClick &&
-                    'cursor-pointer hover:bg-vault-amber/5'
+                    'cursor-pointer hover:bg-vault-muted'
                 )}
                 onClick={() => onRowClick?.(item)}
               >

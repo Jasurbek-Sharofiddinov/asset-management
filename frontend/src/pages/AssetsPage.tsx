@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { Plus, Filter, X, Search } from 'lucide-react'
@@ -28,18 +28,31 @@ const categoryOptions: AssetCategory[] = [
 export default function AssetsPage() {
   const navigate = useNavigate()
   const { t } = useLanguageStore()
+  const [searchParams] = useSearchParams()
+  const initialStatus = searchParams.get('status') as AssetStatus | null
+  const initialCategory = searchParams.get('category') as AssetCategory | null
+  const initialSearch = searchParams.get('search') || ''
+  const hasUrlFilter = Boolean(
+    (initialStatus && statusOptions.includes(initialStatus)) ||
+    (initialCategory && categoryOptions.includes(initialCategory))
+  )
   const [showForm, setShowForm] = useState(false)
   const [editingAsset, setEditingAsset] = useState<Asset | null>(null)
-  const [showFilters, setShowFilters] = useState(false)
+  const [showFilters, setShowFilters] = useState(hasUrlFilter)
   const [params, setParams] = useState<AssetParams>({
     page: 1,
     size: 20,
     sort_by: 'created_at',
     sort_order: 'desc',
+    search: initialSearch || undefined,
   })
-  const [searchInput, setSearchInput] = useState('')
-  const [selectedStatuses, setSelectedStatuses] = useState<AssetStatus[]>([])
-  const [selectedCategories, setSelectedCategories] = useState<AssetCategory[]>([])
+  const [searchInput, setSearchInput] = useState(initialSearch)
+  const [selectedStatuses, setSelectedStatuses] = useState<AssetStatus[]>(
+    initialStatus && statusOptions.includes(initialStatus) ? [initialStatus] : []
+  )
+  const [selectedCategories, setSelectedCategories] = useState<AssetCategory[]>(
+    initialCategory && categoryOptions.includes(initialCategory) ? [initialCategory] : []
+  )
   const [selectedBranchId, setSelectedBranchId] = useState<string>('')
 
   const { data: branches } = useQuery({
@@ -186,7 +199,7 @@ export default function AssetsPage() {
             <Filter className="h-4 w-4" />
             {t('assets.filters')}
             {hasActiveFilters && (
-              <span className="ml-1 w-5 h-5 rounded-full bg-vault-amber text-vault-black text-[10px] flex items-center justify-center font-bold">
+              <span className="ml-1 w-5 h-5 rounded-full bg-vault-amber text-white text-[10px] flex items-center justify-center font-bold">
                 {selectedStatuses.length + selectedCategories.length + (selectedBranchId ? 1 : 0)}
               </span>
             )}

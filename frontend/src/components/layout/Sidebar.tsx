@@ -8,7 +8,6 @@ import { useAuthStore } from '../../stores/authStore'
 import { useLanguageStore } from '../../stores/languageStore'
 import { useLayoutStore } from '../../stores/layoutStore'
 import { cn } from '../../lib/utils'
-import { useState } from 'react'
 import type { TranslationKey } from '../../i18n/translations'
 
 const navGroups = [
@@ -32,7 +31,7 @@ const navGroups = [
 
 export function Sidebar() {
   const { user, logout } = useAuthStore()
-  const { t, locale, setLocale } = useLanguageStore()
+  const { t } = useLanguageStore()
   const { sidebarOpen, toggleSidebar } = useLayoutStore()
   const navigate = useNavigate()
 
@@ -115,7 +114,7 @@ export function Sidebar() {
       {/* User */}
       <div className="px-4 py-4 border-t border-vault-border/50">
         <div className="flex items-center gap-2.5 mb-2.5">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold text-vault-amber" style={{ background: 'rgba(245,166,35,0.12)' }}>
+          <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold text-vault-amber bg-vault-muted">
             {user?.full_name?.charAt(0)?.toUpperCase() || 'U'}
           </div>
           <div className="flex-1 min-w-0">
@@ -138,18 +137,15 @@ export function Sidebar() {
       </button>
       {sidebarOpen && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden" onClick={toggleSidebar} />
+          className="fixed inset-0 z-40 bg-vault-text/40 lg:hidden" onClick={toggleSidebar} />
       )}
       <motion.aside initial={false} animate={{ x: sidebarOpen ? 0 : '-100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        className="fixed inset-y-0 left-0 z-50 w-[220px] bg-vault-surface border-r border-vault-border lg:hidden">
+        className="fixed inset-y-0 left-0 z-50 w-[240px] bg-vault-surface border-r border-vault-border lg:hidden">
         <button onClick={toggleSidebar} className="absolute top-4 right-3 p-1 text-vault-muted-text hover:text-vault-text"><X className="h-4 w-4" /></button>
         {sidebarContent}
       </motion.aside>
-      <aside className={cn(
-        "hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:left-0 bg-vault-surface border-r border-vault-border/50 transition-all duration-300",
-        sidebarOpen ? "lg:w-[220px]" : "lg:w-[60px]"
-      )}>
+      <aside className="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:left-0 lg:w-[240px] bg-vault-surface border-r border-vault-border/50">
         {sidebarContent}
       </aside>
     </>

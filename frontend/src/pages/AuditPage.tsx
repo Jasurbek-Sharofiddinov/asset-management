@@ -1,6 +1,5 @@
 import { useState, useCallback, Fragment } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { motion, AnimatePresence } from 'framer-motion'
 import {
   Download,
   ChevronDown,
@@ -82,16 +81,19 @@ export default function AuditPage() {
 
   if (isLoading) return <PageLoader />
 
-  const renderJsonDiff = (oldVal: Record<string, unknown> | undefined, newVal: Record<string, unknown> | undefined) => {
+  const renderJsonDiff = (
+    oldVal: Record<string, unknown> | undefined,
+    newVal: Record<string, unknown> | undefined
+  ) => {
     if (!oldVal && !newVal) return null
 
     return (
-      <div className="grid grid-cols-2 gap-4 mt-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <p className="text-xs font-medium text-vault-muted-text mb-2">{t('audit.oldValues')}</p>
-          <div className="p-3 rounded-lg bg-vault-red/5 border border-vault-red/10">
+          <div className="p-3 rounded-lg bg-danger-soft border border-vault-border">
             {oldVal ? (
-              <pre className="text-xs font-[family-name:var(--font-mono)] text-vault-text whitespace-pre-wrap break-all">
+              <pre className="text-xs font-mono text-vault-text whitespace-pre-wrap break-all">
                 {JSON.stringify(oldVal, null, 2)}
               </pre>
             ) : (
@@ -101,9 +103,9 @@ export default function AuditPage() {
         </div>
         <div>
           <p className="text-xs font-medium text-vault-muted-text mb-2">{t('audit.newValues')}</p>
-          <div className="p-3 rounded-lg bg-vault-green/5 border border-vault-green/10">
+          <div className="p-3 rounded-lg bg-ok-soft border border-vault-border">
             {newVal ? (
-              <pre className="text-xs font-[family-name:var(--font-mono)] text-vault-text whitespace-pre-wrap break-all">
+              <pre className="text-xs font-mono text-vault-text whitespace-pre-wrap break-all">
                 {JSON.stringify(newVal, null, 2)}
               </pre>
             ) : (
@@ -119,19 +121,17 @@ export default function AuditPage() {
     <div className="space-y-4">
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Button
-            variant={showFilters ? 'primary' : 'secondary'}
-            size="sm"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="h-4 w-4" />
-            {t('audit.filters')}
-            {hasActiveFilters && (
-              <span className="ml-1 w-2 h-2 rounded-full bg-vault-amber" />
-            )}
-          </Button>
-        </div>
+        <Button
+          variant={showFilters ? 'primary' : 'secondary'}
+          size="sm"
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          <Filter className="h-4 w-4" />
+          {t('audit.filters')}
+          {hasActiveFilters && (
+            <span className="ml-1 w-2 h-2 rounded-full bg-vault-amber" />
+          )}
+        </Button>
         {canExport && (
           <Button variant="secondary" size="sm" onClick={handleExportCSV}>
             <Download className="h-4 w-4" />
@@ -142,12 +142,7 @@ export default function AuditPage() {
 
       {/* Filter Panel */}
       {showFilters && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          exit={{ opacity: 0, height: 0 }}
-          className="bg-vault-surface border border-vault-border rounded-xl p-4"
-        >
+        <div className="bg-vault-surface border border-vault-border rounded-xl p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-medium text-vault-text">{t('audit.filters')}</h3>
             {hasActiveFilters && (
@@ -166,7 +161,7 @@ export default function AuditPage() {
               <select
                 value={selectedEntity}
                 onChange={(e) => { setSelectedEntity(e.target.value); setPage(1) }}
-                className="w-full px-3 py-2 bg-vault-black border border-vault-border rounded-lg text-sm text-vault-text appearance-none focus:outline-none focus:ring-2 focus:ring-vault-amber/40"
+                className="w-full px-3 py-2 bg-vault-surface border border-vault-border rounded-lg text-sm text-vault-text appearance-none focus:outline-none focus:ring-2 focus:ring-vault-amber/30 focus:border-vault-amber/40 transition-all"
               >
                 <option value="">{t('audit.all')}</option>
                 {entityTypes.map((tp) => (
@@ -179,7 +174,7 @@ export default function AuditPage() {
               <select
                 value={selectedAction}
                 onChange={(e) => { setSelectedAction(e.target.value); setPage(1) }}
-                className="w-full px-3 py-2 bg-vault-black border border-vault-border rounded-lg text-sm text-vault-text appearance-none focus:outline-none focus:ring-2 focus:ring-vault-amber/40"
+                className="w-full px-3 py-2 bg-vault-surface border border-vault-border rounded-lg text-sm text-vault-text appearance-none focus:outline-none focus:ring-2 focus:ring-vault-amber/30 focus:border-vault-amber/40 transition-all"
               >
                 <option value="">{t('audit.all')}</option>
                 {actionTypes.map((a) => (
@@ -193,7 +188,7 @@ export default function AuditPage() {
                 type="date"
                 value={startDate}
                 onChange={(e) => { setStartDate(e.target.value); setPage(1) }}
-                className="w-full px-3 py-2 bg-vault-black border border-vault-border rounded-lg text-sm text-vault-text focus:outline-none focus:ring-2 focus:ring-vault-amber/40"
+                className="w-full px-3 py-2 bg-vault-surface border border-vault-border rounded-lg text-sm text-vault-text focus:outline-none focus:ring-2 focus:ring-vault-amber/30 focus:border-vault-amber/40 transition-all"
               />
             </div>
             <div>
@@ -202,18 +197,18 @@ export default function AuditPage() {
                 type="date"
                 value={endDate}
                 onChange={(e) => { setEndDate(e.target.value); setPage(1) }}
-                className="w-full px-3 py-2 bg-vault-black border border-vault-border rounded-lg text-sm text-vault-text focus:outline-none focus:ring-2 focus:ring-vault-amber/40"
+                className="w-full px-3 py-2 bg-vault-surface border border-vault-border rounded-lg text-sm text-vault-text focus:outline-none focus:ring-2 focus:ring-vault-amber/30 focus:border-vault-amber/40 transition-all"
               />
             </div>
           </div>
-        </motion.div>
+        </div>
       )}
 
       {/* Audit Table */}
-      <div className="w-full overflow-x-auto rounded-xl border border-vault-border">
+      <div className="w-full overflow-x-auto rounded-xl border border-vault-border bg-vault-surface">
         <table className="w-full text-sm">
-          <thead className="sticky top-0 z-10">
-            <tr className="bg-vault-muted/30 border-b border-vault-border">
+          <thead>
+            <tr className="bg-vault-muted border-b border-vault-border">
               <th className="w-8 px-3 py-3" />
               <th className="px-4 py-3 text-left text-xs font-semibold text-vault-muted-text uppercase tracking-wider">
                 {t('audit.colTimestamp')}
@@ -237,58 +232,48 @@ export default function AuditPage() {
           </thead>
           <tbody>
             {data?.items && data.items.length > 0 ? (
-              data.items.map((log, index) => (
-                <Fragment key={log.id}>
-                  <tr
-                    className={`border-b border-vault-border/30 cursor-pointer transition-colors hover:bg-vault-amber/5 ${
-                      index % 2 === 1 ? 'bg-vault-muted/5' : ''
-                    }`}
-                    onClick={() =>
-                      setExpandedRow(expandedRow === log.id ? null : log.id)
-                    }
-                  >
-                    <td className="px-3 py-3">
-                      {expandedRow === log.id ? (
-                        <ChevronDown className="h-4 w-4 text-vault-amber" />
-                      ) : (
-                        <ChevronRight className="h-4 w-4 text-vault-muted-text" />
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-vault-muted-text whitespace-nowrap">
-                      {formatDateTime(log.occurred_at)}
-                    </td>
-                    <td className="px-4 py-3 text-vault-text">{log.entity_type}</td>
-                    <td className="px-4 py-3">
-                      <ActionBadge action={log.action} />
-                    </td>
-                    <td className="px-4 py-3 text-vault-text">
-                      {log.actor_name || 'System'}
-                    </td>
-                    <td className="px-4 py-3 font-[family-name:var(--font-mono)] text-[13px] text-vault-muted-text">
-                      {String(log.entity_id).substring(0, 8)}...
-                    </td>
-                    <td className="px-4 py-3 text-vault-muted-text max-w-[200px] truncate">
-                      {log.reason || '-'}
-                    </td>
-                  </tr>
-                  <AnimatePresence>
-                    {expandedRow === log.id && (
-                      <tr key={`expand-${log.id}`}>
-                        <td colSpan={7} className="px-4 pb-4">
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className="overflow-hidden"
-                          >
-                            {renderJsonDiff(log.old_value, log.new_value)}
-                          </motion.div>
+              data.items.map((log) => {
+                const isExpanded = expandedRow === log.id
+                return (
+                  <Fragment key={log.id}>
+                    <tr
+                      className="border-b border-vault-border cursor-pointer transition-colors hover:bg-vault-muted/50"
+                      onClick={() => setExpandedRow(isExpanded ? null : log.id)}
+                    >
+                      <td className="px-3 py-3">
+                        {isExpanded ? (
+                          <ChevronDown className="h-4 w-4 text-vault-text" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-vault-muted-text" />
+                        )}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-[13px] text-vault-muted-text whitespace-nowrap">
+                        {formatDateTime(log.occurred_at)}
+                      </td>
+                      <td className="px-4 py-3 text-vault-text">{log.entity_type}</td>
+                      <td className="px-4 py-3">
+                        <ActionBadge action={log.action} />
+                      </td>
+                      <td className="px-4 py-3 text-vault-text">
+                        {log.actor_name || 'System'}
+                      </td>
+                      <td className="px-4 py-3 font-mono text-[13px] text-vault-muted-text">
+                        {String(log.entity_id).substring(0, 8)}...
+                      </td>
+                      <td className="px-4 py-3 text-vault-muted-text max-w-[200px] truncate">
+                        {log.reason || '-'}
+                      </td>
+                    </tr>
+                    {isExpanded && (
+                      <tr className="border-b border-vault-border bg-vault-muted/30">
+                        <td colSpan={7} className="px-4 py-4">
+                          {renderJsonDiff(log.old_value, log.new_value)}
                         </td>
                       </tr>
                     )}
-                  </AnimatePresence>
-                </Fragment>
-              ))
+                  </Fragment>
+                )
+              })
             ) : (
               <tr>
                 <td

@@ -19,7 +19,7 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <div className={cn('flex flex-col items-center justify-center py-16 px-4', className)}>
-      <div className="flex items-center justify-center w-16 h-16 rounded-full bg-vault-muted/30 mb-4">
+      <div className="flex items-center justify-center w-16 h-16 rounded-full bg-vault-muted mb-4">
         {icon || <Package className="h-8 w-8 text-vault-muted-text" />}
       </div>
       <h3 className="text-lg font-medium text-vault-text mb-1">{title}</h3>

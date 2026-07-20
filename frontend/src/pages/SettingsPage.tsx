@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -141,14 +140,14 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       {/* Tabs */}
-      <div className="flex gap-1 p-1 bg-vault-surface rounded-lg border border-vault-border w-fit">
+      <div className="flex gap-1 p-1 bg-vault-muted rounded-lg border border-vault-border w-fit">
         {visibleTabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === tab.id
-                ? 'bg-vault-amber/10 text-vault-amber'
+                ? 'bg-white text-vault-text shadow-sm border border-vault-border'
                 : 'text-vault-muted-text hover:text-vault-text'
             }`}
           >
@@ -160,10 +159,7 @@ export default function SettingsPage() {
 
       {/* Users Tab */}
       {activeTab === 'users' && isAdmin && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
+        <div>
           <Card>
             <CardHeader>
               <CardTitle>Users</CardTitle>
@@ -178,22 +174,18 @@ export default function SettingsPage() {
               </p>
             </div>
           </Card>
-        </motion.div>
+        </div>
       )}
 
       {/* Reference Data Tab */}
       {activeTab === 'reference' && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="space-y-6"
-        >
+        <div className="space-y-6">
           {/* Departments */}
           <Card>
             <CardHeader>
               <CardTitle>
                 <div className="flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-vault-amber" />
+                  <Building2 className="h-5 w-5 text-vault-muted-text" />
                   Departments
                 </div>
               </CardTitle>
@@ -237,7 +229,7 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle>
                 <div className="flex items-center gap-2">
-                  <GitBranch className="h-5 w-5 text-vault-blue" />
+                  <GitBranch className="h-5 w-5 text-vault-muted-text" />
                   Branches
                 </div>
               </CardTitle>
@@ -285,7 +277,7 @@ export default function SettingsPage() {
             <CardHeader>
               <CardTitle>
                 <div className="flex items-center gap-2">
-                  <UserPlus className="h-5 w-5 text-vault-green" />
+                  <UserPlus className="h-5 w-5 text-vault-muted-text" />
                   Employees
                 </div>
               </CardTitle>
@@ -333,49 +325,44 @@ export default function SettingsPage() {
               </div>
             )}
           </Card>
-        </motion.div>
+        </div>
       )}
 
       {/* System Tab */}
       {activeTab === 'system' && isAdmin && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
+        <div>
           <Card>
             <CardHeader>
               <CardTitle>System Configuration</CardTitle>
             </CardHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 rounded-lg bg-vault-black/50 border border-vault-border/30">
-                  <p className="text-xs text-vault-muted-text">Application</p>
-                  <p className="text-sm text-vault-text font-medium mt-1">AssetVault v1.0.0</p>
-                </div>
-                <div className="p-4 rounded-lg bg-vault-black/50 border border-vault-border/30">
-                  <p className="text-xs text-vault-muted-text">API Status</p>
-                  <p className="text-sm text-vault-green font-medium mt-1">Connected</p>
-                </div>
-                <div className="p-4 rounded-lg bg-vault-black/50 border border-vault-border/30">
-                  <p className="text-xs text-vault-muted-text">Total Departments</p>
-                  <p className="text-sm text-vault-text font-medium mt-1">{departments.length}</p>
-                </div>
-                <div className="p-4 rounded-lg bg-vault-black/50 border border-vault-border/30">
-                  <p className="text-xs text-vault-muted-text">Total Branches</p>
-                  <p className="text-sm text-vault-text font-medium mt-1">{branches.length}</p>
-                </div>
-                <div className="p-4 rounded-lg bg-vault-black/50 border border-vault-border/30">
-                  <p className="text-xs text-vault-muted-text">Total Employees</p>
-                  <p className="text-sm text-vault-text font-medium mt-1">{employees.length}</p>
-                </div>
-                <div className="p-4 rounded-lg bg-vault-black/50 border border-vault-border/30">
-                  <p className="text-xs text-vault-muted-text">Environment</p>
-                  <p className="text-sm text-vault-text font-medium mt-1">Production</p>
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-4 rounded-lg bg-vault-muted border border-vault-border">
+                <p className="text-xs text-vault-muted-text">Application</p>
+                <p className="text-sm text-vault-text font-medium mt-1">AssetVault v1.0.0</p>
+              </div>
+              <div className="p-4 rounded-lg bg-vault-muted border border-vault-border">
+                <p className="text-xs text-vault-muted-text">API Status</p>
+                <p className="text-sm text-vault-green font-medium mt-1">Connected</p>
+              </div>
+              <div className="p-4 rounded-lg bg-vault-muted border border-vault-border">
+                <p className="text-xs text-vault-muted-text">Total Departments</p>
+                <p className="text-sm text-vault-text font-medium mt-1 font-mono">{departments.length}</p>
+              </div>
+              <div className="p-4 rounded-lg bg-vault-muted border border-vault-border">
+                <p className="text-xs text-vault-muted-text">Total Branches</p>
+                <p className="text-sm text-vault-text font-medium mt-1 font-mono">{branches.length}</p>
+              </div>
+              <div className="p-4 rounded-lg bg-vault-muted border border-vault-border">
+                <p className="text-xs text-vault-muted-text">Total Employees</p>
+                <p className="text-sm text-vault-text font-medium mt-1 font-mono">{employees.length}</p>
+              </div>
+              <div className="p-4 rounded-lg bg-vault-muted border border-vault-border">
+                <p className="text-xs text-vault-muted-text">Environment</p>
+                <p className="text-sm text-vault-text font-medium mt-1">Production</p>
               </div>
             </div>
           </Card>
-        </motion.div>
+        </div>
       )}
 
       {/* Department Form Modal */}

@@ -48,7 +48,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-vault-text/40"
             onClick={onClose}
           />
 
@@ -59,13 +59,13 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
             className={cn(
-              'relative h-full w-full bg-vault-surface border-l border-vault-border shadow-2xl overflow-y-auto',
+              'relative h-full w-full bg-vault-surface border-l border-vault-border shadow-xl overflow-y-auto',
               sizes[size]
             )}
           >
             {/* Header */}
-            <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-vault-surface/95 backdrop-blur-sm border-b border-vault-border">
-              <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold text-vault-text">
+            <div className="sticky top-0 z-10 flex items-center justify-between px-6 py-4 bg-vault-surface border-b border-vault-border">
+              <h2 className="text-lg font-semibold text-vault-text">
                 {title}
               </h2>
               <button

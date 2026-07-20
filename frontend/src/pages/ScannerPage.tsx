@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
 import { Html5Qrcode } from 'html5-qrcode'
 import { Camera, RotateCcw, ExternalLink, Package } from 'lucide-react'
 import { assetsApi } from '../lib/api'
@@ -106,160 +105,138 @@ export default function ScannerPage() {
   }, [])
 
   return (
-    <div className="max-w-xl mx-auto space-y-6">
+    <div className="max-w-xl mx-auto space-y-4">
       {/* Scanner Area */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-      >
-        <Card className="overflow-hidden">
-          <div className="text-center mb-4">
-            <h2 className="font-[family-name:var(--font-display)] text-lg font-semibold text-vault-text">
-              Scan Asset QR Code
-            </h2>
-            <p className="text-sm text-vault-muted-text mt-1">
-              Point your camera at an asset QR code to view its details
-            </p>
-          </div>
+      <Card className="overflow-hidden">
+        <div className="text-center mb-4">
+          <h2 className="text-lg font-semibold text-vault-text">
+            Scan Asset QR Code
+          </h2>
+          <p className="text-sm text-vault-muted-text mt-1">
+            Point your camera at an asset QR code to view its details
+          </p>
+        </div>
 
-          {/* Camera Viewport */}
-          <div className="relative rounded-xl overflow-hidden bg-vault-black border border-vault-border">
-            {isScanning ? (
-              <div
-                id="qr-reader"
-                ref={readerRef}
-                className="w-full min-h-[300px]"
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center min-h-[300px] p-8">
-                {isLoading ? (
-                  <LoadingSpinner size="lg" label="Looking up asset..." />
-                ) : (
-                  <>
-                    <div className="w-20 h-20 rounded-full bg-vault-amber/10 flex items-center justify-center mb-4">
-                      <Camera className="h-10 w-10 text-vault-amber" />
-                    </div>
-                    <p className="text-sm text-vault-muted-text mb-4">
-                      {scannedAsset
-                        ? 'Asset found! View details below.'
-                        : 'Press the button below to start scanning'}
-                    </p>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
+        {/* Camera Viewport */}
+        <div className="relative rounded-xl overflow-hidden bg-vault-muted border border-vault-border">
+          {isScanning ? (
+            <div
+              id="qr-reader"
+              ref={readerRef}
+              className="w-full min-h-[300px]"
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center min-h-[300px] p-8">
+              {isLoading ? (
+                <LoadingSpinner size="lg" label="Looking up asset..." />
+              ) : (
+                <>
+                  <div className="w-16 h-16 rounded-full bg-vault-surface border border-vault-border flex items-center justify-center mb-4">
+                    <Camera className="h-8 w-8 text-vault-muted-text" />
+                  </div>
+                  <p className="text-sm text-vault-muted-text">
+                    {scannedAsset
+                      ? 'Asset found. View details below.'
+                      : 'Press the button below to start scanning'}
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+        </div>
 
-          {/* Controls */}
-          <div className="flex justify-center mt-4">
-            {isScanning ? (
-              <Button variant="secondary" onClick={stopScanner}>
-                Stop Scanning
-              </Button>
-            ) : (
-              <Button onClick={startScanner}>
-                <Camera className="h-4 w-4" />
-                {scannedAsset ? 'Scan Again' : 'Start Scanner'}
-              </Button>
-            )}
-          </div>
-        </Card>
-      </motion.div>
+        {/* Controls */}
+        <div className="flex justify-center mt-4">
+          {isScanning ? (
+            <Button variant="secondary" onClick={stopScanner}>
+              Stop Scanning
+            </Button>
+          ) : (
+            <Button onClick={startScanner}>
+              <Camera className="h-4 w-4" />
+              {scannedAsset ? 'Scan Again' : 'Start Scanner'}
+            </Button>
+          )}
+        </div>
+      </Card>
 
       {/* Error */}
-      <AnimatePresence>
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="p-4 rounded-xl bg-vault-red/10 border border-vault-red/20"
+      {error && (
+        <div className="p-4 rounded-xl bg-danger-soft border border-vault-border">
+          <p className="text-sm text-danger">{error}</p>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-2"
+            onClick={startScanner}
           >
-            <p className="text-sm text-vault-red">{error}</p>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="mt-2"
-              onClick={startScanner}
-            >
-              <RotateCcw className="h-4 w-4" />
-              Try Again
-            </Button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <RotateCcw className="h-4 w-4" />
+            Try Again
+          </Button>
+        </div>
+      )}
 
       {/* Scanned Asset Card */}
-      <AnimatePresence>
-        {scannedAsset && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          >
-            <Card hover onClick={() => navigate(`/assets/${scannedAsset.id}`)}>
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-vault-amber/10 flex items-center justify-center">
-                    <Package className="h-6 w-6 text-vault-amber" />
-                  </div>
-                  <div>
-                    <h3 className="font-[family-name:var(--font-display)] text-lg font-semibold text-vault-text">
-                      {scannedAsset.name}
-                    </h3>
-                    <p className="font-[family-name:var(--font-mono)] text-[13px] text-vault-muted-text">
-                      {scannedAsset.serial_number}
-                    </p>
-                  </div>
-                </div>
-                <StatusBadge status={scannedAsset.status} />
+      {scannedAsset && (
+        <Card hover onClick={() => navigate(`/assets/${scannedAsset.id}`)}>
+          <div className="flex items-start justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-xl bg-vault-muted border border-vault-border flex items-center justify-center">
+                <Package className="h-6 w-6 text-vault-muted-text" />
               </div>
+              <div>
+                <h3 className="text-lg font-semibold text-vault-text">
+                  {scannedAsset.name}
+                </h3>
+                <p className="font-mono text-[13px] text-vault-muted-text">
+                  {scannedAsset.serial_number}
+                </p>
+              </div>
+            </div>
+            <StatusBadge status={scannedAsset.status} />
+          </div>
 
-              <div className="grid grid-cols-2 gap-3 mt-4">
-                <div className="p-2 rounded-lg bg-vault-black/50 border border-vault-border/30">
-                  <p className="text-xs text-vault-muted-text">Category</p>
-                  <p className="text-sm text-vault-text">{scannedAsset.category}</p>
-                </div>
-                <div className="p-2 rounded-lg bg-vault-black/50 border border-vault-border/30">
-                  <p className="text-xs text-vault-muted-text">Type</p>
-                  <p className="text-sm text-vault-text">{scannedAsset.asset_type}</p>
-                </div>
-                {scannedAsset.brand && (
-                  <div className="p-2 rounded-lg bg-vault-black/50 border border-vault-border/30">
-                    <p className="text-xs text-vault-muted-text">Brand</p>
-                    <p className="text-sm text-vault-text">
-                      {scannedAsset.brand} {scannedAsset.model || ''}
-                    </p>
-                  </div>
-                )}
-                {scannedAsset.purchase_price && (
-                  <div className="p-2 rounded-lg bg-vault-black/50 border border-vault-border/30">
-                    <p className="text-xs text-vault-muted-text">Value</p>
-                    <p className="text-sm text-vault-text">
-                      {formatCurrency(Number(scannedAsset.purchase_price))}
-                    </p>
-                  </div>
-                )}
-                {scannedAsset.current_employee_name && (
-                  <div className="col-span-2 p-2 rounded-lg bg-vault-green/5 border border-vault-green/20">
-                    <p className="text-xs text-vault-muted-text">Assigned To</p>
-                    <p className="text-sm text-vault-green font-medium">
-                      {scannedAsset.current_employee_name}
-                    </p>
-                  </div>
-                )}
+          <div className="grid grid-cols-2 gap-3 mt-4">
+            <div className="p-2.5 rounded-lg bg-vault-muted border border-vault-border">
+              <p className="text-xs text-vault-muted-text">Category</p>
+              <p className="text-sm text-vault-text mt-0.5">{scannedAsset.category}</p>
+            </div>
+            <div className="p-2.5 rounded-lg bg-vault-muted border border-vault-border">
+              <p className="text-xs text-vault-muted-text">Type</p>
+              <p className="text-sm text-vault-text mt-0.5">{scannedAsset.asset_type}</p>
+            </div>
+            {scannedAsset.brand && (
+              <div className="p-2.5 rounded-lg bg-vault-muted border border-vault-border">
+                <p className="text-xs text-vault-muted-text">Brand</p>
+                <p className="text-sm text-vault-text mt-0.5">
+                  {scannedAsset.brand} {scannedAsset.model || ''}
+                </p>
               </div>
+            )}
+            {scannedAsset.purchase_price && (
+              <div className="p-2.5 rounded-lg bg-vault-muted border border-vault-border">
+                <p className="text-xs text-vault-muted-text">Value</p>
+                <p className="font-mono text-sm text-vault-text mt-0.5">
+                  {formatCurrency(Number(scannedAsset.purchase_price))}
+                </p>
+              </div>
+            )}
+            {scannedAsset.current_employee_name && (
+              <div className="col-span-2 p-2.5 rounded-lg bg-ok-soft border border-vault-border">
+                <p className="text-xs text-vault-muted-text">Assigned To</p>
+                <p className="text-sm text-ok font-medium mt-0.5">
+                  {scannedAsset.current_employee_name}
+                </p>
+              </div>
+            )}
+          </div>
 
-              <div className="flex items-center justify-center gap-2 mt-4 pt-3 border-t border-vault-border/50">
-                <ExternalLink className="h-4 w-4 text-vault-amber" />
-                <span className="text-sm text-vault-amber font-medium">View Full Details</span>
-              </div>
-            </Card>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          <div className="flex items-center justify-center gap-2 mt-4 pt-3 border-t border-vault-border">
+            <ExternalLink className="h-4 w-4 text-vault-amber" />
+            <span className="text-sm text-vault-amber font-medium">View Full Details</span>
+          </div>
+        </Card>
+      )}
     </div>
   )
 }

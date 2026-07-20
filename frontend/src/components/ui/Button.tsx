@@ -11,13 +11,13 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = 'primary', size = 'md', isLoading, disabled, children, ...props }, ref) => {
     const baseStyles =
-      'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-vault-black disabled:opacity-50 disabled:cursor-not-allowed'
+      'inline-flex items-center justify-center font-medium rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-vault-black disabled:opacity-50 disabled:cursor-not-allowed'
 
     const variants = {
       primary:
-        'bg-vault-amber text-vault-black hover:bg-amber-400 focus:ring-vault-amber shadow-[0_0_0_1px_rgba(245,158,11,0.3)]',
+        'bg-vault-amber text-white hover:bg-vault-amber-dim focus:ring-vault-amber',
       secondary:
-        'bg-vault-muted text-vault-text hover:bg-vault-border border border-vault-border focus:ring-vault-muted',
+        'bg-white text-vault-text hover:bg-vault-muted border border-vault-border focus:ring-vault-border',
       danger:
         'bg-vault-red/10 text-vault-red hover:bg-vault-red/20 border border-vault-red/30 focus:ring-vault-red',
       ghost:
