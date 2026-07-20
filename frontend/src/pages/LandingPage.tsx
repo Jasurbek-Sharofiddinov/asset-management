@@ -131,18 +131,18 @@ function ProductPreview() {
             <div className="text-[11px] text-muted mb-3">Status breakdown</div>
             <div className="flex items-center gap-4">
               <div className="relative shrink-0">
-                <Donut segments={previewBreakdown.map((b) => ({ value: b.value, color: STATUS[b.key].dot }))} />
+                <Donut segments={previewBreakdown.map((b) => ({ value: b.value, color: STATUS[b.key].dot }))} size={86} stroke={11} />
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-lg font-semibold text-ink font-mono leading-none">300</span>
-                  <span className="text-[10px] text-muted mt-0.5">assets</span>
+                  <span className="text-base font-semibold text-ink font-mono leading-none">300</span>
+                  <span className="text-[9px] text-muted mt-0.5">assets</span>
                 </div>
               </div>
-              <ul className="space-y-1.5 text-[11px]">
+              <ul className="flex-1 min-w-0 space-y-1.5 text-[11px]">
                 {previewBreakdown.map((b) => (
                   <li key={b.key} className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full" style={{ background: STATUS[b.key].dot }} />
-                    <span className="text-body">{STATUS[b.key].label}</span>
-                    <span className="ml-auto text-muted font-mono">{b.value}</span>
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: STATUS[b.key].dot }} />
+                    <span className="text-body truncate">{STATUS[b.key].label}</span>
+                    <span className="ml-auto shrink-0 pl-2 text-muted font-mono tabular-nums">{b.value}</span>
                   </li>
                 ))}
               </ul>
