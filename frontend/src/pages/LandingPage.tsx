@@ -7,7 +7,7 @@ import {
 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { useAuthStore } from '../stores/authStore'
-import { AISuggestDemo, AuditDiffDemo, AnalyticsDemo } from '../components/landing/Demos'
+import { AISuggestDemo, AuditDiffDemo, AnalyticsDemo, QRScanDemo, AIPredictDemo, WarrantyDemo } from '../components/landing/Demos'
 
 // ── Small helpers ─────────────────────────────────────────────────────────────
 
@@ -274,6 +274,24 @@ export default function LandingPage() {
       kicker: 'Analytics',
       title: 'Answers, not just numbers',
       desc: 'Allocation by department, asset age, repair frequency and warranty exposure — visualized live across every location.',
+    },
+    {
+      demo: <QRScanDemo />,
+      kicker: 'QR tracking',
+      title: 'Scan to the source of truth',
+      desc: 'A code on every asset resolves to its live record, current holder and full history — from any phone, in seconds.',
+    },
+    {
+      demo: <AIPredictDemo />,
+      kicker: 'AI forecasting',
+      title: "See what you'll need next",
+      desc: 'AI forecasts upcoming purchases, maintenance and budget from your usage and age curves — before things break.',
+    },
+    {
+      demo: <WarrantyDemo />,
+      kicker: 'Stay ahead',
+      title: 'Never miss a warranty',
+      desc: 'Assets nearing warranty expiry surface automatically, ranked by urgency, so you renew or replace in time.',
     },
   ]
 
