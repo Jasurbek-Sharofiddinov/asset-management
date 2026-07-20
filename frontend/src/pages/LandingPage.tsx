@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { useAuthStore } from '../stores/authStore'
+import { AISuggestDemo, AuditDiffDemo, AnalyticsDemo } from '../components/landing/Demos'
 
 // ── Small helpers ─────────────────────────────────────────────────────────────
 
@@ -255,6 +256,27 @@ export default function LandingPage() {
 
   const ctaTarget = isAuthenticated ? '/dashboard' : '/register'
 
+  const DEMOS = [
+    {
+      demo: <AISuggestDemo />,
+      kicker: 'AI-assisted',
+      title: 'AI files assets for you',
+      desc: 'Start typing an asset name and AI suggests the right category with a confidence score — one click to apply. No more inventory scattered across the wrong buckets.',
+    },
+    {
+      demo: <AuditDiffDemo />,
+      kicker: 'Compliance',
+      title: 'Every change, on the record',
+      desc: 'Expand any audit entry to see exactly what changed — old values versus new, who did it and when. The log is append-only and exports to CSV for any review.',
+    },
+    {
+      demo: <AnalyticsDemo />,
+      kicker: 'Analytics',
+      title: 'Answers, not just numbers',
+      desc: 'Allocation by department, asset age, repair frequency and warranty exposure — visualized live across every location.',
+    },
+  ]
+
   return (
     <div className="min-h-screen bg-paper text-body font-sans antialiased">
       {/* ── Nav ── */}
@@ -414,6 +436,32 @@ export default function LandingPage() {
                 <f.icon className="h-5 w-5 text-brand" strokeWidth={1.75} />
                 <h3 className="mt-4 text-[15px] font-semibold text-ink">{f.title}</h3>
                 <p className="mt-2 text-[13.5px] leading-relaxed text-body">{f.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── See it in action (animated product demos) ── */}
+      <section id="demos" className="px-6 py-24 border-y border-line bg-white">
+        <div className="max-w-6xl mx-auto">
+          <Reveal className="max-w-2xl mb-16">
+            <p className="text-[12px] font-medium uppercase tracking-[0.14em] text-gold mb-4">See it in action</p>
+            <h2 className="font-serif text-[32px] leading-[1.12] tracking-[-0.02em] text-ink">
+              The product, not a promise.
+            </h2>
+          </Reveal>
+          <div className="space-y-16 lg:space-y-24">
+            {DEMOS.map((d, i) => (
+              <div key={d.title} className="grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
+                <div className={`flex justify-center ${i % 2 === 1 ? 'lg:order-2' : ''}`}>
+                  {d.demo}
+                </div>
+                <Reveal className={i % 2 === 1 ? 'lg:order-1' : ''}>
+                  <p className="text-[12px] font-medium uppercase tracking-[0.14em] text-gold mb-3">{d.kicker}</p>
+                  <h3 className="font-serif text-[26px] leading-[1.15] tracking-[-0.01em] text-ink mb-3">{d.title}</h3>
+                  <p className="text-[15px] leading-relaxed text-body">{d.desc}</p>
+                </Reveal>
               </div>
             ))}
           </div>
