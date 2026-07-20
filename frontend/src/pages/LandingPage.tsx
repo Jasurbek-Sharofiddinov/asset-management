@@ -8,6 +8,7 @@ import {
 import { QRCodeSVG } from 'qrcode.react'
 import { useAuthStore } from '../stores/authStore'
 import { AISuggestDemo, AuditDiffDemo, AnalyticsDemo, QRScanDemo, AIPredictDemo, WarrantyDemo } from '../components/landing/Demos'
+import { Pricing } from '../components/landing/Pricing'
 
 // ── Small helpers ─────────────────────────────────────────────────────────────
 
@@ -307,6 +308,7 @@ export default function LandingPage() {
           <nav className="hidden sm:flex items-center gap-7 text-[13px] text-body">
             <a href="#product" className="hover:text-ink transition-colors">Product</a>
             <a href="#features" className="hover:text-ink transition-colors">Features</a>
+            <a href="#pricing" className="hover:text-ink transition-colors">Pricing</a>
             <a href="#security" className="hover:text-ink transition-colors">Security</a>
           </nav>
           <div className="flex items-center gap-1.5">
@@ -515,6 +517,9 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── Pricing ── */}
+      <Pricing />
+
       {/* ── CTA — signature: a real, scannable QR to the live demo ── */}
       <section className="px-6 pb-24">
         <div className="max-w-6xl mx-auto rounded-2xl bg-brand overflow-hidden grid md:grid-cols-[1.35fr_1fr]">
@@ -567,8 +572,9 @@ export default function LandingPage() {
             <Mark className="h-4 w-4 text-brand" />
             <span className="text-[13px] font-semibold">AssetVault</span>
           </div>
-          <p className="text-[12px] text-muted">Asset management platform</p>
-          <div className="flex items-center gap-5 text-[12px] text-body">
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12px] text-body">
+            <a href="https://t.me/jasurbeksharofiddinov" target="_blank" rel="noreferrer" className="hover:text-ink transition-colors">Telegram @jasurbeksharofiddinov</a>
+            <a href="tel:+998999948959" className="hover:text-ink transition-colors">+998 99 994 89 59</a>
             <Link to="/login" className="hover:text-ink transition-colors">Sign in</Link>
             <Link to="/register" className="hover:text-ink transition-colors">Register</Link>
           </div>
