@@ -464,13 +464,15 @@ export default function AssetDetailPage() {
           <h3 className="text-lg font-semibold text-vault-text mb-6">
             {t('detail.qrCode')}
           </h3>
-          <div className="p-6 bg-white rounded-2xl border border-vault-border mb-6">
+          <div className="p-6 bg-white rounded-2xl border-2 border-white mb-6">
             <QRCodeSVG
               id="asset-qr-code"
               value={`${window.location.origin}/assets/${asset.id}`}
               size={220}
               level="H"
               includeMargin={false}
+              bgColor="#FFFFFF"
+              fgColor="#0C0E14"
             />
           </div>
           <p className="font-mono text-[13px] text-vault-muted-text mb-6">

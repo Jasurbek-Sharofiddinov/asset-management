@@ -35,6 +35,7 @@ async def recommend_category(
 
 @router.get("/insights")
 async def get_insights(
+    locale: str = Query("en"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(_ai_roles),
 ):
@@ -106,7 +107,7 @@ async def get_insights(
         "total_status_changes": total_status_changes,
     }
 
-    insights = await ai_service.generate_insights(analytics_data)
+    insights = await ai_service.generate_insights(analytics_data, locale=locale)
     insights["data_snapshot"] = analytics_data
     return insights
 

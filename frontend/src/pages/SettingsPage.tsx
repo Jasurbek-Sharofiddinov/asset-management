@@ -291,7 +291,7 @@ export default function SettingsPage() {
             onClick={() => setActiveTab(tab.id)}
             className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === tab.id
-                ? 'bg-white text-vault-text shadow-sm border border-vault-border'
+                ? 'bg-vault-surface text-vault-text shadow-sm border border-vault-border'
                 : 'text-vault-muted-text hover:text-vault-text'
             }`}
           >
@@ -387,7 +387,7 @@ export default function SettingsPage() {
                                   payload: { role: e.target.value as UserRole },
                                 })
                               }
-                              className="h-8 px-2 rounded-md border border-vault-border bg-white text-[13px] disabled:opacity-50"
+                              className="h-8 px-2 rounded-md border border-vault-border bg-vault-surface text-[13px] disabled:opacity-50"
                             >
                               {roleOptions.map((r) => (
                                 <option key={r.value} value={r.value}>

@@ -35,7 +35,7 @@ export default function AuditPage() {
       )}
 
       {data && data.items.length > 0 && (
-        <div className="mt-6 border border-line rounded-lg bg-white overflow-x-auto">
+        <div className="mt-6 border border-line rounded-lg bg-vault-surface overflow-x-auto">
           <table className="w-full text-left text-[13px]">
             <thead className="border-b border-line bg-paper/60 text-[11px] uppercase tracking-wide text-muted">
               <tr>
@@ -82,7 +82,7 @@ export default function AuditPage() {
             type="button"
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
-            className="h-8 px-3 rounded-md border border-line bg-white disabled:opacity-40"
+            className="h-8 px-3 rounded-md border border-line bg-vault-surface disabled:opacity-40"
           >
             Previous
           </button>
@@ -93,7 +93,7 @@ export default function AuditPage() {
             type="button"
             disabled={page >= data.pages}
             onClick={() => setPage((p) => p + 1)}
-            className="h-8 px-3 rounded-md border border-line bg-white disabled:opacity-40"
+            className="h-8 px-3 rounded-md border border-line bg-vault-surface disabled:opacity-40"
           >
             Next
           </button>

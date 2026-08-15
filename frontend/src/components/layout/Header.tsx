@@ -8,6 +8,7 @@ import type { TranslationKey } from '../../i18n/translations'
 import { useLayoutStore } from '../../stores/layoutStore'
 import { formatDate } from '../../lib/utils'
 import { cn } from '../../lib/utils'
+import { ThemeToggle } from '../ui/ThemeToggle'
 
 const pageTitleKeys: Record<string, TranslationKey> = {
   '/dashboard': 'header.dashboard',
@@ -107,6 +108,8 @@ export function Header() {
               </button>
             ))}
           </div>
+
+          <ThemeToggle />
 
           {/* Notifications */}
           <div className="relative" ref={notifRef}>

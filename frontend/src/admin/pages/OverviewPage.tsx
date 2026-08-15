@@ -29,13 +29,13 @@ export default function OverviewPage() {
       {data && (
         <>
           <div className="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="border border-line rounded-lg bg-white p-4">
+            <div className="border border-line rounded-lg bg-vault-surface p-4">
               <p className="text-[12px] uppercase tracking-wide text-muted">Total</p>
               <p className="mt-1 text-[24px] font-semibold text-ink">{data.total}</p>
             </div>
             <Link
               to="/organizations?status=pending_review"
-              className="border border-line rounded-lg bg-white p-4 hover:border-brand/40 transition-colors"
+              className="border border-line rounded-lg bg-vault-surface p-4 hover:border-brand/40 transition-colors"
             >
               <p className="text-[12px] uppercase tracking-wide text-muted">
                 Pending review
@@ -49,7 +49,7 @@ export default function OverviewPage() {
                 <Link
                   key={status}
                   to={`/organizations?status=${status}`}
-                  className="border border-line rounded-lg bg-white p-4 hover:border-brand/40 transition-colors"
+                  className="border border-line rounded-lg bg-vault-surface p-4 hover:border-brand/40 transition-colors"
                 >
                   <p className="text-[12px] uppercase tracking-wide text-muted">
                     {status.replace(/_/g, ' ')}
@@ -79,7 +79,7 @@ export default function OverviewPage() {
                 No trials ending in the next 7 days.
               </p>
             ) : (
-              <ul className="divide-y divide-line border border-line rounded-lg bg-white overflow-hidden">
+              <ul className="divide-y divide-line border border-line rounded-lg bg-vault-surface overflow-hidden">
                 {data.trials_expiring_soon.map((org) => (
                   <li key={org.id}>
                     <Link

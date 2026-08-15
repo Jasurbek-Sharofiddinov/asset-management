@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, ShieldCheck } from 'lucide-react'
 import { usePlatformAuthStore } from '../stores/authStore'
 import { useLanguageStore } from '../../stores/languageStore'
+import { ThemeToggle } from '../../components/ui/ThemeToggle'
 
 /**
  * Where tenant users belong. Resolved locally rather than importing the tenant
@@ -50,9 +51,12 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-paper flex items-center justify-center px-6 py-12">
+    <div className="relative min-h-screen bg-paper flex items-center justify-center px-6 py-12">
+      <div className="absolute top-5 right-5">
+        <ThemeToggle />
+      </div>
       <div className="w-full max-w-md">
-        <div className="rounded-xl border border-line bg-white overflow-hidden shadow-sm">
+        <div className="rounded-xl border border-line bg-vault-surface overflow-hidden shadow-sm">
           {/* Dark operations band — the tenant app never shows this. */}
           <div className="bg-brand px-7 py-6 text-white">
             <div className="flex items-center gap-2">
@@ -90,7 +94,7 @@ export default function LoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full h-11 px-3 rounded-md border border-line bg-white text-ink text-[14px] outline-none focus:border-brand"
+                className="w-full h-11 px-3 rounded-md border border-line bg-vault-surface text-ink text-[14px] outline-none focus:border-brand"
               />
             </div>
             <div>
@@ -108,7 +112,7 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full h-11 px-3 pr-10 rounded-md border border-line bg-white text-ink text-[14px] outline-none focus:border-brand"
+                  className="w-full h-11 px-3 pr-10 rounded-md border border-line bg-vault-surface text-ink text-[14px] outline-none focus:border-brand"
                 />
                 <button
                   type="button"

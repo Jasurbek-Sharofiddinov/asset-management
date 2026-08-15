@@ -80,7 +80,7 @@ export default function OrganizationsPage() {
           value={qDraft}
           onChange={(e) => setQDraft(e.target.value)}
           placeholder={t('admin.searchPlaceholder')}
-          className="w-full max-w-md h-10 px-3 rounded-md border border-line text-[14px] bg-white"
+          className="w-full max-w-md h-10 px-3 rounded-md border border-line text-[14px] bg-vault-surface"
         />
       </form>
 
@@ -96,7 +96,7 @@ export default function OrganizationsPage() {
             className={`px-3 py-1.5 rounded-md text-[12px] capitalize ${
               status === tab.value
                 ? 'bg-brand text-white'
-                : 'bg-white border border-line text-body hover:text-ink'
+                : 'bg-vault-surface border border-line text-body hover:text-ink'
             }`}
           >
             {tab.label}
@@ -116,7 +116,7 @@ export default function OrganizationsPage() {
       )}
 
       {data && data.items.length > 0 && (
-        <div className="border border-line rounded-lg bg-white overflow-x-auto">
+        <div className="border border-line rounded-lg bg-vault-surface overflow-x-auto">
           <table className="w-full text-left text-[13px]">
             <thead className="border-b border-line bg-paper/60 text-[11px] uppercase tracking-wide text-muted">
               <tr>
@@ -165,7 +165,7 @@ export default function OrganizationsPage() {
             type="button"
             disabled={page <= 1}
             onClick={() => setFilter({ page: page - 1 })}
-            className="h-8 px-3 rounded-md border border-line bg-white disabled:opacity-40"
+            className="h-8 px-3 rounded-md border border-line bg-vault-surface disabled:opacity-40"
           >
             Previous
           </button>
@@ -176,7 +176,7 @@ export default function OrganizationsPage() {
             type="button"
             disabled={page >= data.pages}
             onClick={() => setFilter({ page: page + 1 })}
-            className="h-8 px-3 rounded-md border border-line bg-white disabled:opacity-40"
+            className="h-8 px-3 rounded-md border border-line bg-vault-surface disabled:opacity-40"
           >
             Next
           </button>

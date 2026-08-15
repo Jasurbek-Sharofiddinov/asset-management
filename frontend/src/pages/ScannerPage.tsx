@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Html5Qrcode } from 'html5-qrcode'
-import { Camera, RotateCcw, ExternalLink, Package } from 'lucide-react'
+import { Camera, RotateCcw, ExternalLink, Package, Keyboard } from 'lucide-react'
 import { assetsApi } from '../lib/api'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
@@ -18,6 +18,7 @@ export default function ScannerPage() {
   const [scannedAsset, setScannedAsset] = useState<Asset | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [serialInput, setSerialInput] = useState('')
   const scannerRef = useRef<Html5Qrcode | null>(null)
   const readerRef = useRef<HTMLDivElement | null>(null)
 
@@ -79,6 +80,36 @@ export default function ScannerPage() {
     [stopScanner, t]
   )
 
+  const lookupBySerial = async (e: FormEvent) => {
+    e.preventDefault()
+    const serial = serialInput.trim()
+    if (!serial) {
+      setError(t('scanner.serialRequired'))
+      return
+    }
+    await stopScanner()
+    setIsLoading(true)
+    setError(null)
+    setScannedAsset(null)
+    try {
+      const result = await assetsApi.getAssets({ search: serial, size: 25 })
+      const needle = serial.toLowerCase()
+      const exact = result.items.find(
+        (asset) => asset.serial_number.toLowerCase() === needle,
+      )
+      const asset = exact ?? (result.items.length === 1 ? result.items[0] : null)
+      if (!asset) {
+        setError(t('scanner.serialNotFound'))
+        return
+      }
+      setScannedAsset(asset)
+    } catch {
+      setError(t('scanner.fetchFailed'))
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const startScanner = useCallback(async () => {
     setScannedAsset(null)
     setError(null)
@@ -130,7 +161,7 @@ export default function ScannerPage() {
         </div>
 
         {/* Camera Viewport */}
-        <div className="relative rounded-xl overflow-hidden bg-vault-muted border border-vault-border">
+        <div className="relative rounded-xl overflow-hidden bg-black border-2 border-white">
           {isScanning ? (
             <div
               id="qr-reader"
@@ -170,6 +201,29 @@ export default function ScannerPage() {
             </Button>
           )}
         </div>
+
+        <form onSubmit={lookupBySerial} className="mt-5 pt-5 border-t border-vault-border">
+          <p className="text-[12px] font-medium text-vault-muted-text text-center mb-3">
+            {t('scanner.orEnterSerial')}
+          </p>
+          <label htmlFor="scanner-serial" className="sr-only">
+            {t('scanner.serialLabel')}
+          </label>
+          <div className="flex gap-2">
+            <input
+              id="scanner-serial"
+              value={serialInput}
+              onChange={(e) => setSerialInput(e.target.value)}
+              placeholder={t('scanner.serialPlaceholder')}
+              autoComplete="off"
+              className="flex-1 min-w-0 px-3 py-2 bg-vault-input border border-vault-border rounded-lg text-[13px] font-mono text-vault-text placeholder:text-vault-disabled focus:outline-none focus:border-vault-border-focus"
+            />
+            <Button type="submit" variant="secondary" disabled={isLoading}>
+              <Keyboard className="h-4 w-4" />
+              {t('scanner.lookup')}
+            </Button>
+          </div>
+        </form>
       </Card>
 
       {/* Error */}

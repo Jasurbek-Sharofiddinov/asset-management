@@ -15,7 +15,15 @@ describe('i18n keys', () => {
       expect(translations[locale]['validation.branchRequired']).toBeTruthy()
       expect(translations[locale]['login.orgSlugLabel']).toBeTruthy()
       expect(translations[locale]['scanner.title']).toBeTruthy()
+      expect(translations[locale]['scanner.serialLabel']).toBeTruthy()
+      expect(translations[locale]['scanner.lookup']).toBeTruthy()
       expect(translations[locale]['admin.signIn']).toBeTruthy()
+      expect(translations[locale]['ai.beta']).toBeTruthy()
+      expect(translations[locale]['ai.regenerate']).toBeTruthy()
+      expect(translations[locale]['ai.analyzing']).toBeTruthy()
+      expect(translations[locale]['ai.generateInsights']).toBeTruthy()
+      expect(translations[locale]['theme.toDark']).toBeTruthy()
+      expect(translations[locale]['theme.toLight']).toBeTruthy()
     }
   })
 

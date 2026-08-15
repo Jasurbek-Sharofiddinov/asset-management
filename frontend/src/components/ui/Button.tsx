@@ -17,7 +17,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       primary:
         'bg-vault-amber text-white hover:bg-vault-amber-dim focus:ring-vault-amber',
       secondary:
-        'bg-white text-vault-text hover:bg-vault-muted border border-vault-border focus:ring-vault-border',
+        'bg-vault-surface text-vault-text hover:bg-vault-muted border border-vault-border focus:ring-vault-border',
       danger:
         'bg-vault-red/10 text-vault-red hover:bg-vault-red/20 border border-vault-red/30 focus:ring-vault-red',
       ghost:

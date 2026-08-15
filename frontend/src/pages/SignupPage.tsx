@@ -88,7 +88,7 @@ export default function SignupPage() {
   if (submitted) {
     return (
       <div className="min-h-screen bg-paper flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-md rounded-xl border border-line bg-white p-8">
+        <div className="w-full max-w-md rounded-xl border border-line bg-vault-surface p-8">
           <div className="flex items-center gap-2 text-ink mb-6">
             <Mark className="h-5 w-5 text-brand" />
             <span className="text-[15px] font-semibold tracking-tight">AssetVault</span>
@@ -178,7 +178,7 @@ export default function SignupPage() {
                 required
                 value={organizationName}
                 onChange={(e) => setOrganizationName(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-white border border-line rounded-lg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40"
+                className="w-full px-3.5 py-2.5 bg-vault-surface border border-line rounded-lg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40"
               />
             </div>
             <div>
@@ -190,7 +190,7 @@ export default function SignupPage() {
                 required
                 value={adminFullName}
                 onChange={(e) => setAdminFullName(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-white border border-line rounded-lg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40"
+                className="w-full px-3.5 py-2.5 bg-vault-surface border border-line rounded-lg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40"
               />
             </div>
             <div>
@@ -203,7 +203,7 @@ export default function SignupPage() {
                 required
                 value={contactEmail}
                 onChange={(e) => setContactEmail(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-white border border-line rounded-lg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40"
+                className="w-full px-3.5 py-2.5 bg-vault-surface border border-line rounded-lg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40"
               />
             </div>
             <div>
@@ -217,7 +217,7 @@ export default function SignupPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3.5 py-2.5 pr-10 bg-white border border-line rounded-lg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40"
+                  className="w-full px-3.5 py-2.5 pr-10 bg-vault-surface border border-line rounded-lg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40"
                 />
                 <button
                   type="button"
@@ -242,7 +242,7 @@ export default function SignupPage() {
                 required
                 value={confirm}
                 onChange={(e) => setConfirm(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-white border border-line rounded-lg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40"
+                className="w-full px-3.5 py-2.5 bg-vault-surface border border-line rounded-lg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40"
               />
             </div>
             <div className="grid sm:grid-cols-2 gap-3.5">
@@ -254,7 +254,7 @@ export default function SignupPage() {
                   id="phone"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-white border border-line rounded-lg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40"
+                  className="w-full px-3.5 py-2.5 bg-vault-surface border border-line rounded-lg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40"
                 />
               </div>
               <div>
@@ -265,7 +265,7 @@ export default function SignupPage() {
                   id="country"
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-white border border-line rounded-lg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40"
+                  className="w-full px-3.5 py-2.5 bg-vault-surface border border-line rounded-lg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40"
                 />
               </div>
             </div>
@@ -277,7 +277,7 @@ export default function SignupPage() {
                 id="website"
                 value={website}
                 onChange={(e) => setWebsite(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-white border border-line rounded-lg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40"
+                className="w-full px-3.5 py-2.5 bg-vault-surface border border-line rounded-lg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40"
               />
             </div>
             <div>
@@ -288,7 +288,7 @@ export default function SignupPage() {
                 id="type"
                 value={institutionType}
                 onChange={(e) => setInstitutionType(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-white border border-line rounded-lg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40"
+                className="w-full px-3.5 py-2.5 bg-vault-surface border border-line rounded-lg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40"
               >
                 <option value="">Select…</option>
                 {INSTITUTION_TYPES.map((t) => (
@@ -307,7 +307,7 @@ export default function SignupPage() {
                 value={useCase}
                 onChange={(e) => setUseCase(e.target.value)}
                 rows={3}
-                className="w-full px-3.5 py-2.5 bg-white border border-line rounded-lg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40"
+                className="w-full px-3.5 py-2.5 bg-vault-surface border border-line rounded-lg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40"
               />
             </div>
             <button

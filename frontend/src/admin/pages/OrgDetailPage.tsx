@@ -189,7 +189,7 @@ export default function OrgDetailPage() {
         </div>
       </div>
 
-      <dl className="grid sm:grid-cols-2 gap-6 border border-line rounded-lg bg-white p-6">
+      <dl className="grid sm:grid-cols-2 gap-6 border border-line rounded-lg bg-vault-surface p-6">
         <Field label="Slug" value={org.slug} />
         <Field label="Workspace URL" value={tenantOrigin(org.slug)} />
         <Field label="Contact email" value={org.contact_email} />
@@ -231,7 +231,7 @@ export default function OrgDetailPage() {
             Workspace: <span className="font-mono">{tenantOrigin(org.slug)}/login</span>
           </p>
           <code
-            className="block mt-2 p-3 bg-white border border-line rounded text-[13px] break-all"
+            className="block mt-2 p-3 bg-vault-surface border border-line rounded text-[13px] break-all"
             style={{ fontFamily: "'JetBrains Mono', monospace" }}
           >
             {inviteToken}
@@ -261,7 +261,7 @@ export default function OrgDetailPage() {
 
       {canReview && !inviteToken && !activatedWithoutToken && (
         <div className="grid gap-8">
-          <section className="border border-line rounded-lg bg-white p-6 space-y-4">
+          <section className="border border-line rounded-lg bg-vault-surface p-6 space-y-4">
             <h2 className="text-[16px] font-medium text-ink">Activate</h2>
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
@@ -277,7 +277,7 @@ export default function OrgDetailPage() {
                 <select
                   value={plan}
                   onChange={(e) => setPlan(e.target.value)}
-                  className="w-full h-10 px-3 rounded-md border border-line text-[14px] bg-white"
+                  className="w-full h-10 px-3 rounded-md border border-line text-[14px] bg-vault-surface"
                 >
                   {ORGANIZATION_PLANS.map((p) => (
                     <option key={p.value} value={p.value}>
@@ -318,7 +318,7 @@ export default function OrgDetailPage() {
             </button>
           </section>
 
-          <section className="border border-line rounded-lg bg-white p-6 space-y-4">
+          <section className="border border-line rounded-lg bg-vault-surface p-6 space-y-4">
             <h2 className="text-[16px] font-medium text-ink">Reject</h2>
             <textarea
               value={rejectReason}
@@ -340,7 +340,7 @@ export default function OrgDetailPage() {
       )}
 
       {canSuspend && (
-        <section className="border border-line rounded-lg bg-white p-6 space-y-4">
+        <section className="border border-line rounded-lg bg-vault-surface p-6 space-y-4">
           <h2 className="text-[16px] font-medium text-ink">Suspend</h2>
           <textarea
             value={suspendReason}
@@ -361,7 +361,7 @@ export default function OrgDetailPage() {
       )}
 
       {canReactivate && (
-        <section className="border border-line rounded-lg bg-white p-6 space-y-3">
+        <section className="border border-line rounded-lg bg-vault-surface p-6 space-y-3">
           <h2 className="text-[16px] font-medium text-ink">Reactivate</h2>
           <p className="text-[13px] text-body">
             Restore this organization to active status.
@@ -378,7 +378,7 @@ export default function OrgDetailPage() {
       )}
 
       {canEdit && (
-        <section className="border border-line rounded-lg bg-white p-6 space-y-4">
+        <section className="border border-line rounded-lg bg-vault-surface p-6 space-y-4">
           <h2 className="text-[16px] font-medium text-ink">Edit</h2>
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
@@ -394,7 +394,7 @@ export default function OrgDetailPage() {
               <select
                 value={editPlan}
                 onChange={(e) => setEditPlan(e.target.value)}
-                className="w-full h-10 px-3 rounded-md border border-line text-[14px] bg-white"
+                className="w-full h-10 px-3 rounded-md border border-line text-[14px] bg-vault-surface"
               >
                 {ORGANIZATION_PLANS.map((p) => (
                   <option key={p.value} value={p.value}>
@@ -431,7 +431,7 @@ export default function OrgDetailPage() {
       )}
 
       {canExtendTrial && (
-        <section className="border border-line rounded-lg bg-white p-6 space-y-4">
+        <section className="border border-line rounded-lg bg-vault-surface p-6 space-y-4">
           <h2 className="text-[16px] font-medium text-ink">Extend trial</h2>
           <input
             type="datetime-local"

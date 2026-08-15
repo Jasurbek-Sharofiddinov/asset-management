@@ -76,7 +76,7 @@ export default function ChangePasswordPage() {
                 required
                 value={current}
                 onChange={(e) => setCurrent(e.target.value)}
-                className="w-full px-3.5 py-2.5 pr-10 bg-white border border-line rounded-lg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40"
+                className="w-full px-3.5 py-2.5 pr-10 bg-vault-surface border border-line rounded-lg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40"
               />
               <button
                 type="button"
@@ -98,7 +98,7 @@ export default function ChangePasswordPage() {
               required
               value={next}
               onChange={(e) => setNext(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-white border border-line rounded-lg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40"
+              className="w-full px-3.5 py-2.5 bg-vault-surface border border-line rounded-lg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40"
             />
             <p className="mt-1 text-[12px] text-muted">
               At least 8 characters, with uppercase, lowercase, and a number.
@@ -114,7 +114,7 @@ export default function ChangePasswordPage() {
               required
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-white border border-line rounded-lg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40"
+              className="w-full px-3.5 py-2.5 bg-vault-surface border border-line rounded-lg text-ink text-[14px] focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40"
             />
           </div>
           <button

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { usePlatformAuthStore } from '../stores/authStore'
 import { useLanguageStore } from '../../stores/languageStore'
+import { ThemeToggle } from '../../components/ui/ThemeToggle'
 
 export function statusTone(status: string) {
   switch (status) {
@@ -57,7 +58,7 @@ export default function ConsoleLayout() {
 
   return (
     <div className="min-h-screen bg-paper flex">
-      <aside className="w-56 shrink-0 border-r border-line bg-white flex flex-col">
+      <aside className="w-56 shrink-0 border-r border-line bg-vault-surface flex flex-col">
         <div className="px-5 h-14 flex items-center border-b border-line">
           <span
             className="text-[15px] font-semibold text-ink tracking-tight"
@@ -99,7 +100,10 @@ export default function ConsoleLayout() {
           </button>
         </div>
         <div className="mt-auto border-t border-line px-4 py-4">
-          <p className="text-[12px] text-muted truncate">{admin?.email}</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-[12px] text-muted truncate">{admin?.email}</p>
+            <ThemeToggle className="shrink-0" />
+          </div>
           <button
             type="button"
             onClick={() => logout()}

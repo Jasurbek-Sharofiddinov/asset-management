@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { motion, useReducedMotion } from 'framer-motion'
 import {
   ArrowRight, ArrowUpRight, ShieldCheck, ScanLine,
-  ScrollText, BarChart3, Boxes, Check, Menu, X,
+  ScrollText, BarChart3, Boxes, Check, Menu, X, Globe2,
 } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import {
@@ -21,10 +21,11 @@ const TRIAL_CTA = `Start a ${TRIAL_LENGTH_DAYS}-day trial`
 
 const NAV_LINKS = [
   { href: '#product', label: 'Product' },
+  { href: '#outcomes', label: 'Why it matters' },
   { href: '#features', label: 'Features' },
-  { href: '#integrations', label: 'Integrations' },
-  { href: '#pricing', label: 'Pricing' },
   { href: '#security', label: 'Security' },
+  { href: '#team', label: 'Team' },
+  { href: '#pricing', label: 'Pricing' },
 ]
 
 const TRIAL_FACTS = [
@@ -117,7 +118,7 @@ const previewRows = [
 
 function ProductPreview() {
   return (
-    <div className="rounded-xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_24px_48px_-24px_rgba(16,24,40,0.18)] overflow-hidden">
+    <div className="rounded-xl border border-line bg-vault-surface shadow-[0_1px_2px_rgba(16,24,40,0.04),0_24px_48px_-24px_rgba(16,24,40,0.18)] overflow-hidden">
       {/* window chrome */}
       <div className="flex items-center gap-3 px-4 h-10 border-b border-line-soft bg-paper/60">
         <div className="flex items-center gap-1.5">
@@ -215,7 +216,7 @@ const auditEvents = [
 
 function AuditPreview() {
   return (
-    <div className="rounded-xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_24px_48px_-24px_rgba(16,24,40,0.18)] overflow-hidden">
+    <div className="rounded-xl border border-line bg-vault-surface shadow-[0_1px_2px_rgba(16,24,40,0.04),0_24px_48px_-24px_rgba(16,24,40,0.18)] overflow-hidden">
       <div className="flex items-center gap-3 px-4 h-10 border-b border-line-soft bg-paper/60">
         <div className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-full bg-line" />
@@ -258,8 +259,44 @@ const FEATURES = [
   { icon: ScanLine, title: 'QR tracking', desc: 'A scannable code on every asset resolves to its live record, current holder, and full history.' },
   { icon: ScrollText, title: 'Append-only audit', desc: 'Every change is appended to the log — who, what, when, and why — exportable to CSV for any compliance review.' },
   { icon: BarChart3, title: 'Operational analytics', desc: 'Department allocation, asset age, and repair frequency across every location, updated in real time.' },
-  { icon: ShieldCheck, title: 'Role-based access', desc: 'Four roles — Admin, Manager, Viewer, Auditor — each scoped to exactly what they should see and do.' },
-  { icon: Check, title: 'Single source of truth', desc: 'One record per asset, one active assignment, zero spreadsheets drifting out of sync across offices.' },
+  { icon: ShieldCheck, title: 'Role-based access', desc: 'Four roles — Admin, Manager, Viewer, Auditor — each scoped to exactly what they should see and do. Each organization lives on its own subdomain.' },
+  { icon: Globe2, title: 'Built for this market', desc: 'The product is in English, Russian, and Uzbek. Pricing is in so‘m. Identity and audit match how banks actually operate here.' },
+]
+
+const OUTCOMES = [
+  {
+    title: 'Know who has it — in every branch',
+    desc: 'One live owner per asset. When equipment moves between HQ, a region, or a repair shop, the record moves with it. No double-booked laptops, no “I thought IT had it.”',
+  },
+  {
+    title: 'Walk into an audit with a trail',
+    desc: 'Every status change, assignment, and write-off is append-only: who, what, when, and why. Export CSV. Auditors read the log instead of reconstructing a spreadsheet.',
+  },
+  {
+    title: 'Stop leaking money on idle kit',
+    desc: 'Warranty windows, repair spikes, and write-offs surface before they become a surprise line item. AI insights summarize the portfolio in the language your team actually uses.',
+  },
+]
+
+const TEAM = [
+  {
+    name: 'Jasurbek Sharofiddinov',
+    role: 'Founder',
+    blurb: 'Product and data. Previously product data at Payme; CS, Inha University in Tashkent.',
+    href: 'https://www.linkedin.com/in/jasurbek-sharofiddinov/',
+  },
+  {
+    name: 'Tursunali Kholdorov',
+    role: 'Co-founder',
+    blurb: 'Data infrastructure. Builds warehouses and pipelines; CS, Inha University in Tashkent.',
+    href: 'https://www.linkedin.com/in/tursunali-kholdorov/',
+  },
+  {
+    name: 'Arabbek Tulanboyev',
+    role: 'Co-founder',
+    blurb: 'Software and data at Xalq Banki. Frontend and banking operations in the same seat.',
+    href: 'https://www.linkedin.com/in/arabbek-tulanboyev/',
+  },
 ]
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -325,7 +362,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-paper text-body font-sans antialiased">
       {/* ── Nav ── */}
-      <header className={`fixed top-0 inset-x-0 z-50 transition-colors duration-300 ${scrolled || menuOpen ? 'bg-white/95 backdrop-blur-md border-b border-line' : 'bg-transparent border-b border-transparent'}`}>
+      <header className={`fixed top-0 inset-x-0 z-50 transition-colors duration-300 ${scrolled || menuOpen ? 'bg-vault-surface/95 backdrop-blur-md border-b border-line' : 'bg-transparent border-b border-transparent'}`}>
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 text-ink">
             <Mark className="h-5 w-5 text-brand" />
@@ -370,7 +407,7 @@ export default function LandingPage() {
         </div>
 
         {menuOpen && (
-          <div id="mobile-nav" className="md:hidden border-t border-line bg-white">
+          <div id="mobile-nav" className="md:hidden border-t border-line bg-vault-surface">
             <nav aria-label="Mobile" className="max-w-6xl mx-auto px-6 py-4 flex flex-col">
               {NAV_LINKS.map((l) => (
                 <a
@@ -405,7 +442,7 @@ export default function LandingPage() {
                     <Link
                       to="/login"
                       onClick={() => setMenuOpen(false)}
-                      className="inline-flex items-center justify-center px-4 py-2.5 text-[14px] font-medium text-ink bg-white border border-line rounded-lg hover:border-brand/40 transition-colors"
+                      className="inline-flex items-center justify-center px-4 py-2.5 text-[14px] font-medium text-ink bg-vault-surface border border-line rounded-lg hover:border-brand/40 transition-colors"
                     >
                       Sign in
                     </Link>
@@ -426,7 +463,7 @@ export default function LandingPage() {
               className="inline-flex items-center gap-2 text-[12px] font-medium text-body mb-6"
             >
               <span className="h-px w-6 bg-gold" />
-              <span className="uppercase tracking-[0.14em] text-gold">Asset lifecycle management</span>
+              <span className="uppercase tracking-[0.14em] text-gold">For banks and multi-branch offices</span>
             </motion.div>
 
             <motion.h1
@@ -440,8 +477,8 @@ export default function LandingPage() {
               initial={reduce ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: easeOut, delay: 0.14 }}
               className="mt-6 text-[16px] leading-relaxed text-body max-w-lg"
             >
-              AssetVault tracks your equipment across its whole lifecycle — from purchase to write-off —
-              with QR scanning, role-based access, and an append-only audit trail auditors can follow.
+              Know who holds every laptop, printer, and server — in every branch —
+              without another spreadsheet. Built in Tashkent, in English, Russian, and Uzbek.
             </motion.p>
 
             <motion.div
@@ -459,7 +496,7 @@ export default function LandingPage() {
                   </Link>
                   <a
                     href="#demos"
-                    className="inline-flex items-center gap-1.5 px-5 py-3 text-[14px] font-medium text-ink bg-white border border-line rounded-lg hover:border-brand/40 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-5 py-3 text-[14px] font-medium text-ink bg-vault-surface border border-line rounded-lg hover:border-brand/40 transition-colors"
                   >
                     See it in action
                   </a>
@@ -475,7 +512,7 @@ export default function LandingPage() {
                   </Link>
                   <Link
                     to="/login"
-                    className="inline-flex items-center gap-1.5 px-5 py-3 text-[14px] font-medium text-ink bg-white border border-line rounded-lg hover:border-brand/40 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-5 py-3 text-[14px] font-medium text-ink bg-vault-surface border border-line rounded-lg hover:border-brand/40 transition-colors"
                   >
                     Sign in
                   </Link>
@@ -483,9 +520,27 @@ export default function LandingPage() {
               )}
             </motion.div>
 
+            <motion.ul
+              initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.3 }}
+              className="mt-8 space-y-2 text-[13.5px] text-body"
+            >
+              {[
+                'One live owner per asset, across every location',
+                'Append-only audit log your compliance team can export',
+                'QR on the device → live record on any phone',
+              ].map((line) => (
+                <li key={line} className="flex items-start gap-2.5">
+                  <span className="mt-0.5 shrink-0 w-[16px] h-[16px] rounded-full bg-ok-soft text-ok flex items-center justify-center">
+                    <Check className="w-2.5 h-2.5" />
+                  </span>
+                  {line}
+                </li>
+              ))}
+            </motion.ul>
+
             <motion.p
               initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.34 }}
-              className="mt-8 text-[13px] text-muted"
+              className="mt-6 text-[13px] text-muted"
             >
               {TRIAL_LENGTH_DAYS}-day trial after a short review · shared app during the trial ·
               your own subdomain after upgrade.
@@ -501,7 +556,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── Metrics band (example workspace, not customer figures) ── */}
-      <section className="border-y border-line bg-white">
+      <section className="border-y border-line bg-vault-surface">
         <div className="max-w-6xl mx-auto px-6 py-10">
           <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted mb-6">
             Example workspace — sample data used in the demos below
@@ -531,9 +586,9 @@ export default function LandingPage() {
               Spreadsheets don’t know who has the laptop.
             </h2>
             <p className="text-[15px] leading-relaxed text-body mb-6">
-              Across dozens of locations, assets move constantly — assigned, repaired, retired. On spreadsheets that
-              history evaporates and accountability with it. AssetVault replaces the guesswork with one enforced
-              workflow, where every change is written to the audit log as it happens.
+              Across dozens of bank branches and offices, assets move constantly — assigned, repaired, retired.
+              Spreadsheets lose that history, and accountability with it. AssetVault replaces the guesswork
+              with one enforced workflow, where every change is written to the audit log as it happens.
             </p>
             <ul className="space-y-3">
               {[
@@ -556,8 +611,28 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── Outcomes (benefits, not features) ── */}
+      <section id="outcomes" className="px-6 py-24 border-t border-line">
+        <div className="max-w-6xl mx-auto">
+          <Reveal className="max-w-2xl mb-12">
+            <p className="text-[12px] font-medium uppercase tracking-[0.14em] text-gold mb-4">Why it matters</p>
+            <h2 className="font-serif text-[32px] leading-[1.12] tracking-[-0.02em] text-ink">
+              Features are the machinery. These are the reasons to buy.
+            </h2>
+          </Reveal>
+          <div className="grid md:grid-cols-3 gap-6">
+            {OUTCOMES.map((o) => (
+              <Reveal key={o.title} className="rounded-xl border border-line bg-vault-surface p-6">
+                <h3 className="text-[16px] font-semibold text-ink">{o.title}</h3>
+                <p className="mt-3 text-[14px] leading-relaxed text-body">{o.desc}</p>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── Features ── */}
-      <section id="features" className="px-6 py-24 border-y border-line bg-white">
+      <section id="features" className="px-6 py-24 border-y border-line bg-vault-surface">
         <div className="max-w-6xl mx-auto">
           <Reveal className="max-w-2xl mb-14">
             <p className="text-[12px] font-medium uppercase tracking-[0.14em] text-gold mb-4">Platform</p>
@@ -578,7 +653,7 @@ export default function LandingPage() {
       </section>
 
       {/* ── See it in action (animated product demos) ── */}
-      <section id="demos" className="px-6 py-24 border-y border-line bg-white">
+      <section id="demos" className="px-6 py-24 border-y border-line bg-vault-surface">
         <div className="max-w-6xl mx-auto">
           <Reveal className="max-w-2xl mb-16">
             <p className="text-[12px] font-medium uppercase tracking-[0.14em] text-gold mb-4">See it in action</p>
@@ -589,7 +664,7 @@ export default function LandingPage() {
           <div className="space-y-16 lg:space-y-24">
             {DEMOS.map((d, i) => (
               <div key={d.title} className="grid lg:grid-cols-2 gap-10 lg:gap-14 items-center">
-                <div className={`flex justify-center ${i % 2 === 1 ? 'lg:order-2' : ''}`}>
+                <div className={`flex justify-center ${i % 2 === 1 ? 'lg:order-2' : ''} ${i === 1 ? 'h-[310px] items-center' : ''}`}>
                   {d.demo}
                 </div>
                 <Reveal className={i % 2 === 1 ? 'lg:order-1' : ''}>
@@ -624,7 +699,7 @@ export default function LandingPage() {
               { role: 'VIEWER', desc: 'Read-only visibility into assets and dashboards.' },
               { role: 'AUDITOR', desc: 'Read-only audit log access and CSV export.' },
             ].map((r) => (
-              <Reveal key={r.role} className="rounded-xl border border-line bg-white p-5">
+              <Reveal key={r.role} className="rounded-xl border border-line bg-vault-surface p-5">
                 <div className="font-mono text-[11px] font-semibold tracking-wide text-brand">{r.role}</div>
                 <p className="mt-2 text-[13px] leading-relaxed text-body">{r.desc}</p>
               </Reveal>
@@ -633,8 +708,42 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── Team ── */}
+      <section id="team" className="px-6 py-24">
+        <div className="max-w-6xl mx-auto">
+          <Reveal className="max-w-2xl mb-12">
+            <p className="text-[12px] font-medium uppercase tracking-[0.14em] text-gold mb-4">Team</p>
+            <h2 className="font-serif text-[32px] leading-[1.12] tracking-[-0.02em] text-ink">
+              Building from Tashkent.
+            </h2>
+            <p className="mt-4 text-[15px] leading-relaxed text-body">
+              Three Inha University in Tashkent alumni: product and data, data infrastructure,
+              and engineering inside a commercial bank. We are shipping this product here first.
+            </p>
+          </Reveal>
+          <div className="grid sm:grid-cols-3 gap-4">
+            {TEAM.map((person) => (
+              <Reveal key={person.href} className="rounded-xl border border-line bg-vault-surface p-6">
+                <p className="font-mono text-[11px] font-semibold tracking-wide text-brand">{person.role}</p>
+                <h3 className="mt-2 text-[16px] font-semibold text-ink">{person.name}</h3>
+                <p className="mt-2 text-[13.5px] leading-relaxed text-body">{person.blurb}</p>
+                <a
+                  href={person.href}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-4 inline-flex items-center gap-1 text-[13px] font-medium text-brand hover:text-brand-hover"
+                >
+                  LinkedIn
+                  <ArrowUpRight className="h-3.5 w-3.5" />
+                </a>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── Coming soon: directory / SSO ── */}
-      <section id="integrations" className="px-6 py-24 border-y border-line bg-white">
+      <section id="integrations" className="px-6 py-24 border-y border-line bg-vault-surface">
         <div className="max-w-6xl mx-auto grid lg:grid-cols-[1fr_1.1fr] gap-14 items-start">
           <Reveal>
             <p className="text-[12px] font-medium uppercase tracking-[0.14em] text-gold mb-4">Coming soon</p>
@@ -685,7 +794,7 @@ export default function LandingPage() {
               {isAuthenticated ? (
                 <Link
                   to="/dashboard"
-                  className="inline-flex items-center gap-2 px-6 py-3 text-[14px] font-medium text-brand bg-white rounded-lg hover:bg-paper transition-colors"
+                  className="inline-flex items-center gap-2 px-6 py-3 text-[14px] font-medium text-brand bg-vault-surface rounded-lg hover:bg-paper transition-colors"
                 >
                   Open dashboard
                   <ArrowUpRight className="h-4 w-4" />
@@ -694,7 +803,7 @@ export default function LandingPage() {
                 <>
                   <Link
                     to="/signup"
-                    className="inline-flex items-center gap-2 px-6 py-3 text-[14px] font-medium text-brand bg-white rounded-lg hover:bg-paper transition-colors"
+                    className="inline-flex items-center gap-2 px-6 py-3 text-[14px] font-medium text-brand bg-vault-surface rounded-lg hover:bg-paper transition-colors"
                   >
                     {TRIAL_CTA}
                     <ArrowRight className="h-4 w-4" />
@@ -744,6 +853,8 @@ export default function LandingPage() {
             <span className="text-[13px] font-semibold">AssetVault</span>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12px] text-body">
+            <a href="#team" className="hover:text-ink transition-colors">Team</a>
+            <a href="#pricing" className="hover:text-ink transition-colors">Pricing</a>
             <a href={SALES_TELEGRAM_URL} target="_blank" rel="noreferrer" className="hover:text-ink transition-colors">
               Telegram {SALES_TELEGRAM_HANDLE}
             </a>

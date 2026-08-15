@@ -98,7 +98,7 @@ export default function NewOrganizationPage() {
             id="plan"
             value={plan}
             onChange={(e) => setPlan(e.target.value)}
-            className="w-full h-10 px-3 rounded-md border border-line text-[14px] bg-white"
+            className="w-full h-10 px-3 rounded-md border border-line text-[14px] bg-vault-surface"
           >
             {ORGANIZATION_PLANS.map((p) => (
               <option key={p.value} value={p.value}>

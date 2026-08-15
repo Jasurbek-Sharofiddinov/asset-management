@@ -387,7 +387,7 @@ export const aiApi = {
     const { data } = await api.post('/api/ai/recommend-category', null, { params })
     return data
   },
-  getInsights: async (): Promise<{
+  getInsights: async (locale: string = 'en'): Promise<{
     summary: string
     highlights: string[]
     risks: string[]
@@ -395,7 +395,7 @@ export const aiApi = {
     data_snapshot?: any
     error?: string
   }> => {
-    const { data } = await api.get('/api/ai/insights')
+    const { data } = await api.get('/api/ai/insights', { params: { locale } })
     return data
   },
   getPredictions: async (): Promise<{

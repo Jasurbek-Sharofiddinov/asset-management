@@ -64,7 +64,7 @@ export function Pricing() {
         </div>
 
         {/* Billing toggle */}
-        <div role="group" aria-label="Billing period" className="inline-flex items-center gap-1 p-1 rounded-lg border border-line bg-white mb-10">
+        <div role="group" aria-label="Billing period" className="inline-flex items-center gap-1 p-1 rounded-lg border border-line bg-vault-surface mb-10">
           <button
             type="button"
             onClick={() => setAnnual(false)}
@@ -91,7 +91,7 @@ export function Pricing() {
             return (
               <div
                 key={t.name}
-                className={`relative rounded-2xl bg-white p-6 flex flex-col border ${t.popular ? 'border-brand ring-1 ring-brand/20 shadow-[0_20px_40px_-24px_rgba(23,35,61,0.35)]' : 'border-line'}`}
+                className={`relative rounded-2xl bg-vault-surface p-6 flex flex-col border ${t.popular ? 'border-brand ring-1 ring-brand/20 shadow-[0_20px_40px_-24px_rgba(23,35,61,0.35)]' : 'border-line'}`}
               >
                 {t.popular && (
                   <span className="absolute -top-2.5 left-6 text-[10px] font-semibold uppercase tracking-wider text-white bg-brand px-2 py-0.5 rounded-full">

@@ -20,8 +20,9 @@ import { Card, CardHeader, CardTitle } from '../components/ui/Card'
 import { PageLoader } from '../components/ui/LoadingSpinner'
 import { formatCurrency, formatDate } from '../lib/utils'
 import { useLanguageStore } from '../stores/languageStore'
+import { useChartTheme } from '../lib/chartTheme'
 
-// Status-based charts use the tuned light-theme status colors.
+// Status-based charts use the tuned status colors.
 const STATUS_COLORS: Record<string, string> = {
   REGISTERED: '#6B7280', // gray
   ASSIGNED: '#16A34A', // green
@@ -30,27 +31,9 @@ const STATUS_COLORS: Record<string, string> = {
   WRITTEN_OFF: '#9CA3AF', // muted gray
 }
 
-// Non-status series use a restrained slate/blue monochrome ramp (dark → light).
-const SERIES_RAMP = [
-  '#17233D', '#2B3A5C', '#3F5480', '#5570A2', '#6E8BBB', '#8CA6CE', '#B0C2DD',
-]
-
-// Light-theme chart primitives
-const GRID_STROKE = '#E4E7EC'
-const TICK_FILL = '#79808C'
-const BRAND = '#17233D'
-
-const tooltipStyle = {
-  backgroundColor: '#FFFFFF',
-  border: '1px solid #E4E7EC',
-  borderRadius: '10px',
-  color: '#0C0E14',
-  fontSize: '12px',
-  boxShadow: '0 4px 16px rgba(12,14,20,0.08)',
-}
-
 export default function AnalyticsPage() {
   const { t } = useLanguageStore()
+  const { brand, line, tick, surface, seriesRamp, tooltipStyle } = useChartTheme()
 
   const { data: valueOverTime, isLoading: l1 } = useQuery({
     queryKey: ['analytics', 'value-over-time'],
@@ -121,26 +104,26 @@ export default function AnalyticsPage() {
           {valueOverTime && (valueOverTime as any[]).length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={valueOverTime as any[]}>
-                <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />
-                <XAxis dataKey="date" stroke={GRID_STROKE} tick={{ fill: TICK_FILL, fontSize: 11 }} tickLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={line} vertical={false} />
+                <XAxis dataKey="date" stroke={line} tick={{ fill: tick, fontSize: 11 }} tickLine={false} />
                 <YAxis
-                  stroke={GRID_STROKE}
-                  tick={{ fill: TICK_FILL, fontSize: 11 }}
+                  stroke={line}
+                  tick={{ fill: tick, fontSize: 11 }}
                   tickLine={false}
                   tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
                 />
                 <Tooltip
                   contentStyle={tooltipStyle}
-                  cursor={{ stroke: GRID_STROKE }}
+                  cursor={{ stroke: line }}
                   formatter={(value: any) => [formatCurrency(Number(value)), 'Total Value']}
                 />
                 <Line
                   type="monotone"
                   dataKey="value"
-                  stroke={BRAND}
+                  stroke={brand}
                   strokeWidth={2}
                   dot={false}
-                  activeDot={{ r: 4, fill: BRAND, stroke: '#FFFFFF', strokeWidth: 2 }}
+                  activeDot={{ r: 4, fill: brand, stroke: surface, strokeWidth: 2 }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -159,14 +142,14 @@ export default function AnalyticsPage() {
           {statusOverTime.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <AreaChart data={statusOverTime}>
-                <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />
-                <XAxis dataKey="date" stroke={GRID_STROKE} tick={{ fill: TICK_FILL, fontSize: 11 }} tickLine={false} />
-                <YAxis stroke={GRID_STROKE} tick={{ fill: TICK_FILL, fontSize: 11 }} tickLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={line} vertical={false} />
+                <XAxis dataKey="date" stroke={line} tick={{ fill: tick, fontSize: 11 }} tickLine={false} />
+                <YAxis stroke={line} tick={{ fill: tick, fontSize: 11 }} tickLine={false} />
                 <Tooltip contentStyle={tooltipStyle} cursor={{ fill: 'rgba(23,35,61,0.04)' }} />
                 <Legend
                   verticalAlign="bottom"
                   formatter={(value: string) => (
-                    <span style={{ color: TICK_FILL, fontSize: '11px' }}>
+                    <span style={{ color: tick, fontSize: '11px' }}>
                       {value.replace('_', ' ')}
                     </span>
                   )}
@@ -199,13 +182,13 @@ export default function AnalyticsPage() {
           {deptAllocation.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={deptAllocation} layout="vertical" margin={{ left: 10, right: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} horizontal={false} />
-                <XAxis type="number" stroke={GRID_STROKE} tick={{ fill: TICK_FILL, fontSize: 11 }} tickLine={false} axisLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={line} horizontal={false} />
+                <XAxis type="number" stroke={line} tick={{ fill: tick, fontSize: 11 }} tickLine={false} axisLine={false} />
                 <YAxis
                   type="category"
                   dataKey="department"
-                  stroke={GRID_STROKE}
-                  tick={{ fill: TICK_FILL, fontSize: 11 }}
+                  stroke={line}
+                  tick={{ fill: tick, fontSize: 11 }}
                   width={100}
                   tickLine={false}
                   axisLine={false}
@@ -217,7 +200,7 @@ export default function AnalyticsPage() {
                 />
                 <Bar dataKey="assets" radius={[0, 4, 4, 0]} barSize={20}>
                   {deptAllocation.map((_: any, index: number) => (
-                    <Cell key={index} fill={SERIES_RAMP[index % SERIES_RAMP.length]} />
+                    <Cell key={index} fill={seriesRamp[index % seriesRamp.length]} />
                   ))}
                 </Bar>
               </BarChart>
@@ -237,15 +220,15 @@ export default function AnalyticsPage() {
           {ageDistribution.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={ageDistribution}>
-                <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />
-                <XAxis dataKey="range" stroke={GRID_STROKE} tick={{ fill: TICK_FILL, fontSize: 11 }} tickLine={false} />
-                <YAxis stroke={GRID_STROKE} tick={{ fill: TICK_FILL, fontSize: 11 }} tickLine={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke={line} vertical={false} />
+                <XAxis dataKey="range" stroke={line} tick={{ fill: tick, fontSize: 11 }} tickLine={false} />
+                <YAxis stroke={line} tick={{ fill: tick, fontSize: 11 }} tickLine={false} />
                 <Tooltip
                   contentStyle={tooltipStyle}
                   cursor={{ fill: 'rgba(23,35,61,0.04)' }}
                   formatter={(value: any) => [`${value} assets`, 'Count']}
                 />
-                <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={40} fill={BRAND} />
+                <Bar dataKey="count" radius={[4, 4, 0, 0]} barSize={40} fill={brand} />
               </BarChart>
             </ResponsiveContainer>
           ) : (

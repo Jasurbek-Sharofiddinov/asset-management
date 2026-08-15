@@ -3,9 +3,10 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { Lightbulb, Check, ChevronDown, ChevronRight, Bell, AlertTriangle } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { APP_ORIGIN } from '../../lib/config'
+import { useChartTheme } from '../../lib/chartTheme'
 
 const CARD =
-  'rounded-xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_24px_48px_-24px_rgba(16,24,40,0.18)]'
+  'rounded-xl border border-line bg-vault-surface shadow-[0_1px_2px_rgba(16,24,40,0.04),0_24px_48px_-24px_rgba(16,24,40,0.18)]'
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1]
 
 /* ── 1. AI category suggestion (types a name, AI suggests + applies) ── */
@@ -52,7 +53,7 @@ export function AISuggestDemo() {
       </div>
 
       <label className="block text-[11px] font-medium text-body mt-4 mb-1.5">Category</label>
-      <div className="h-9 px-3 flex items-center justify-between rounded-lg border border-line bg-white text-[13px]">
+      <div className="h-9 px-3 flex items-center justify-between rounded-lg border border-line bg-vault-surface text-[13px]">
         <motion.span key={applied ? 'it' : 'none'} initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }}
           className={applied ? 'text-ink font-medium' : 'text-muted'}>
           {applied ? 'IT' : 'Select…'}
@@ -113,7 +114,7 @@ export function AuditDiffDemo() {
   }, [reduce])
 
   return (
-    <div className={`${CARD} w-full max-w-md overflow-hidden`}>
+    <div className={`${CARD} h-min w-full max-w-md overflow-hidden`}>
       <div className="px-4 h-10 flex items-center gap-1 border-b border-line-soft text-[11px] font-mono text-muted">
         <span className="text-ink font-medium">AssetVault</span><span>/</span><span>Audit log</span>
         <span className="ml-auto inline-flex items-center gap-1.5 text-[10px]"><span className="w-1.5 h-1.5 rounded-full bg-ok" />Append-only</span>
@@ -194,6 +195,7 @@ export function AnalyticsDemo() {
 /* ── 4. QR scan (a scan line sweeps, then resolves to the asset) ── */
 export function QRScanDemo() {
   const reduce = useReducedMotion()
+  const { paper, brand } = useChartTheme()
   const [found, setFound] = useState(reduce ? true : false)
   useEffect(() => {
     if (reduce) return
@@ -213,7 +215,7 @@ export function QRScanDemo() {
     <div className={`${CARD} p-5 w-full max-w-sm`}>
       <div className="text-[13px] font-semibold text-ink mb-4">Scan asset QR</div>
       <div className="relative aspect-[4/3] rounded-lg bg-paper border border-line overflow-hidden flex items-center justify-center">
-        <QRCodeSVG value={APP_ORIGIN} size={92} bgColor="#F6F7F9" fgColor="#17233D" level="M" />
+        <QRCodeSVG value={APP_ORIGIN} size={92} bgColor={paper} fgColor={brand} level="M" />
         {!reduce && !found && (
           <motion.div className="absolute left-5 right-5 h-[2px] rounded bg-brand/70"
             initial={{ top: '20%' }} animate={{ top: ['20%', '80%', '20%'] }}
@@ -229,7 +231,7 @@ export function QRScanDemo() {
         <AnimatePresence>
           {found && (
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              className="flex items-center gap-3 p-3 rounded-lg border border-line bg-white">
+              className="flex items-center gap-3 p-3 rounded-lg border border-line bg-vault-surface">
               <div className="w-9 h-9 rounded-lg bg-ok-soft flex items-center justify-center shrink-0"><Check className="h-4 w-4 text-ok" /></div>
               <div className="min-w-0">
                 <div className="text-[12.5px] font-medium text-ink truncate">Dell Latitude 5540</div>

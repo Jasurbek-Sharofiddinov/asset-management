@@ -1,66 +1,120 @@
 @import "tailwindcss";
 
+:root {
+  --av-paper: #F6F7F9;
+  --av-surface: #FFFFFF;
+  --av-muted-fill: #EEF1F4;
+  --av-line: #E4E7EC;
+  --av-line-focus: #C3CAD6;
+  --av-ink: #0C0E14;
+  --av-body: #444B58;
+  --av-muted: #79808C;
+  --av-disabled: #AEB4BE;
+  --av-brand: #17233D;
+  --av-brand-hover: #223357;
+  --av-gold: #9A6B1F;
+  --av-gold-soft: #F6EEDD;
+  --av-ok: #197A4B;
+  --av-ok-soft: #E6F4EC;
+  --av-warn: #9A6B1F;
+  --av-warn-soft: #F7EFDD;
+  --av-danger: #B42318;
+  --av-danger-soft: #FCEBEA;
+  --av-green: #16A34A;
+  --av-yellow: #CA8A04;
+  --av-orange: #EA580C;
+  --av-red: #DC2626;
+  --av-gray: #6B7280;
+  --av-blue: #2563EB;
+  --av-scroll: #D0D5DD;
+  --av-scroll-hover: #B0B5BE;
+}
+
+html.dark {
+  --av-paper: #0B0D12;
+  --av-surface: #141821;
+  --av-muted-fill: #1C2230;
+  --av-line: #2A3140;
+  --av-line-focus: #3D4A60;
+  --av-ink: #F3F4F6;
+  --av-body: #C5CAD3;
+  --av-muted: #9AA3B2;
+  --av-disabled: #6B7382;
+  --av-brand: #4C5F84;
+  --av-brand-hover: #5B6F94;
+  --av-gold: #D4A84B;
+  --av-gold-soft: #2A2418;
+  --av-ok: #3DDC8A;
+  --av-ok-soft: #143024;
+  --av-warn: #D4A84B;
+  --av-warn-soft: #2A2418;
+  --av-danger: #F87171;
+  --av-danger-soft: #3A1515;
+  --av-green: #4ADE80;
+  --av-yellow: #FACC15;
+  --av-orange: #FB923C;
+  --av-red: #F87171;
+  --av-gray: #9CA3AF;
+  --av-blue: #60A5FA;
+  --av-scroll: #3D4A60;
+  --av-scroll-hover: #55627A;
+}
+
 @theme {
-  /* Base Surfaces — remapped to the light "enterprise" system */
-  --color-vault-black: #F6F7F9;      /* page background */
-  --color-vault-surface: #FFFFFF;    /* cards / panels  */
-  --color-vault-elevated: #FFFFFF;   /* elevated cards  */
-  --color-vault-input: #FFFFFF;      /* form inputs     */
-  --color-vault-muted: #EEF1F4;      /* muted fill      */
-  --color-vault-border: #E4E7EC;     /* hairline border */
-  --color-vault-border-focus: #C3CAD6;
+  --color-vault-black: var(--av-paper);
+  --color-vault-surface: var(--av-surface);
+  --color-vault-elevated: var(--av-surface);
+  --color-vault-input: var(--av-surface);
+  --color-vault-muted: var(--av-muted-fill);
+  --color-vault-border: var(--av-line);
+  --color-vault-border-focus: var(--av-line-focus);
 
-  /* Text */
-  --color-vault-text: #0C0E14;       /* primary / headings (now dark) */
-  --color-vault-muted-text: #79808C; /* secondary text */
-  --color-vault-disabled: #AEB4BE;
+  --color-vault-text: var(--av-ink);
+  --color-vault-muted-text: var(--av-muted);
+  --color-vault-disabled: var(--av-disabled);
 
-  /* Brand Accent — remapped from amber to the slate brand (matches landing) */
-  --color-vault-amber: #17233D;
-  --color-vault-amber-dim: #223357;
+  --color-vault-amber: var(--av-brand);
+  --color-vault-amber-dim: var(--av-brand-hover);
 
-  /* Status (tuned for contrast on light) */
-  --color-vault-green: #16A34A;
-  --color-vault-yellow: #CA8A04;
-  --color-vault-orange: #EA580C;
-  --color-vault-red: #DC2626;
-  --color-vault-gray: #6B7280;
-  --color-vault-blue: #2563EB;
+  --color-vault-green: var(--av-green);
+  --color-vault-yellow: var(--av-yellow);
+  --color-vault-orange: var(--av-orange);
+  --color-vault-red: var(--av-red);
+  --color-vault-gray: var(--av-gray);
+  --color-vault-blue: var(--av-blue);
 
-  /* Fonts */
   --font-display: 'DM Mono', monospace;
   --font-sans: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
   --font-serif: 'Fraunces', Georgia, serif;
 
-  /* ── Light "enterprise" system (landing + Phase-2 app shell) ── */
-  --color-paper: #F6F7F9;      /* page background   */
-  --color-line: #E4E7EC;       /* hairline borders  */
-  --color-line-soft: #EEF1F4;  /* softer dividers   */
-  --color-ink: #0C0E14;        /* headings / near-black */
-  --color-body: #444B58;       /* body text         */
-  --color-muted: #79808C;      /* secondary text    */
-  --color-brand: #17233D;      /* deep slate — primary */
-  --color-brand-hover: #223357;
-  --color-gold: #9A6B1F;       /* premium accent, used sparingly */
-  --color-gold-soft: #F6EEDD;
-  --color-ok: #197A4B;         /* status greens/etc on light */
-  --color-ok-soft: #E6F4EC;
-  --color-warn: #9A6B1F;
-  --color-warn-soft: #F7EFDD;
-  --color-danger: #B42318;
-  --color-danger-soft: #FCEBEA;
+  --color-paper: var(--av-paper);
+  --color-line: var(--av-line);
+  --color-line-soft: var(--av-muted-fill);
+  --color-ink: var(--av-ink);
+  --color-body: var(--av-body);
+  --color-muted: var(--av-muted);
+  --color-brand: var(--av-brand);
+  --color-brand-hover: var(--av-brand-hover);
+  --color-gold: var(--av-gold);
+  --color-gold-soft: var(--av-gold-soft);
+  --color-ok: var(--av-ok);
+  --color-ok-soft: var(--av-ok-soft);
+  --color-warn: var(--av-warn);
+  --color-warn-soft: var(--av-warn-soft);
+  --color-danger: var(--av-danger);
+  --color-danger-soft: var(--av-danger-soft);
 }
 
 @layer base {
   html {
-    background-color: #F6F7F9;
-    color: #0C0E14;
+    background-color: var(--av-paper);
+    color: var(--av-ink);
   }
   body {
     margin: 0;
-    background-color: #F6F7F9;
-    color: #0C0E14;
+    background-color: var(--av-paper);
+    color: var(--av-ink);
     font-family: 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -68,11 +122,26 @@
   }
   #root {
     min-height: 100vh;
-    background-color: #F6F7F9;
+    background-color: var(--av-paper);
   }
 }
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #D0D5DD; border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: #B0B5BE; }
+::-webkit-scrollbar-thumb { background: var(--av-scroll); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--av-scroll-hover); }
+
+/* html5-qrcode scan box — white frame so the region stays visible in dark mode */
+#qr-reader video {
+  width: 100% !important;
+  border-radius: 0.75rem;
+}
+#qr-reader,
+#qr-reader__scan_region,
+#qr-shaded-region {
+  border-color: #ffffff !important;
+}
+#qr-shaded-region {
+  border-width: 3px !important;
+  border-style: solid !important;
+}

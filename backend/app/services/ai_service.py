@@ -75,19 +75,53 @@ Respond with ONLY a JSON object:
         return {"category": "OTHER", "confidence": 0.0, "reason": "AI unavailable"}
 
 
-async def generate_insights(analytics_data: dict) -> dict:
-    system_prompt = """You are a senior asset management analyst at a bank. Analyze the provided asset data and generate actionable insights.
+INSIGHT_LOCALES = frozenset({"en", "ru", "uz"})
+INSIGHT_LANGUAGE_NAMES = {
+    "en": "English",
+    "ru": "Russian",
+    "uz": "Uzbek",
+}
+_INSIGHT_UNAVAILABLE = {
+    "en": {
+        "summary": "AI insights unavailable",
+        "error": "AI service unavailable",
+    },
+    "ru": {
+        "summary": "AI-аналитика недоступна",
+        "error": "Сервис ИИ недоступен",
+    },
+    "uz": {
+        "summary": "AI tahlili mavjud emas",
+        "error": "AI xizmati mavjud emas",
+    },
+}
+
+
+def normalize_insights_locale(locale: str | None) -> str:
+    value = (locale or "en").strip().lower()
+    return value if value in INSIGHT_LOCALES else "en"
+
+
+def insights_system_prompt(locale: str = "en") -> str:
+    language = INSIGHT_LANGUAGE_NAMES[normalize_insights_locale(locale)]
+    return f"""You are a senior asset management analyst at a bank. Analyze the provided asset data and generate actionable insights.
 
 Respond with ONLY a JSON object:
-{
+{{
   "summary": "One paragraph overview of the asset portfolio health",
   "highlights": ["highlight 1", "highlight 2", "highlight 3"],
   "risks": ["risk 1", "risk 2"],
   "recommendations": ["action 1", "action 2", "action 3"]
-}
+}}
 
+Write every human-readable string (summary, highlights, risks, recommendations) in {language}.
+Keep JSON keys in English. Write numbers as digits.
 Be specific with numbers. Keep each item to 1-2 sentences. Focus on actionable intelligence."""
 
+
+async def generate_insights(analytics_data: dict, locale: str = "en") -> dict:
+    locale = normalize_insights_locale(locale)
+    system_prompt = insights_system_prompt(locale)
     user_prompt = f"Asset Portfolio Data:\n{json.dumps(analytics_data, indent=2, default=str)}"
 
     try:
@@ -95,12 +129,13 @@ Be specific with numbers. Keep each item to 1-2 sentences. Focus on actionable i
         return json.loads(_clean_json(result))
     except Exception as e:
         logger.exception("AI insights generation failed: %s", e)
+        fallback = _INSIGHT_UNAVAILABLE[locale]
         return {
-            "summary": "AI insights unavailable",
+            "summary": fallback["summary"],
             "highlights": [],
             "risks": [],
             "recommendations": [],
-            "error": "AI service unavailable",
+            "error": fallback["error"],
         }
 
 

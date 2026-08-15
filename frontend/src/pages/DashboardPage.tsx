@@ -30,8 +30,8 @@ const STATUS_COLORS: Record<string, string> = {
   LOST: '#DC2626', WRITTEN_OFF: '#9CA3AF',
 }
 
-/* Single neutral slate accent for bars */
-const SLATE = '#17233D'
+/* Single brand accent for bars — follows light/dark tokens */
+const SLATE = 'var(--av-brand)'
 
 function RelativeTime({ date }: { date: string }) {
   const ms = Date.now() - new Date(date).getTime()
@@ -92,7 +92,7 @@ function CategoryBreakdown({
               <button
                 key={c.name}
                 onClick={() => onSelect(c.name)}
-                className="text-left p-3 rounded-lg bg-vault-black border border-vault-border hover:border-vault-border-focus hover:bg-white transition-colors"
+                className="text-left p-3 rounded-lg bg-vault-black border border-vault-border hover:border-vault-border-focus hover:bg-vault-surface transition-colors"
               >
                 <span className="block text-[11px] font-medium text-vault-muted-text uppercase tracking-wide truncate">
                   {c.name}
@@ -139,10 +139,11 @@ function CategoryBreakdown({
 }
 
 export default function DashboardPage() {
-  const { t } = useLanguageStore()
+  const { t, locale } = useLanguageStore()
   const { user } = useAuthStore()
   const navigate = useNavigate()
   const [selectedBranchId, setSelectedBranchId] = useState<string>('')
+  const [aiEnabled, setAiEnabled] = useState(false)
   const canViewAudit = user?.role === 'ADMIN' || user?.role === 'AUDITOR'
   const canUseAi = user?.role === 'ADMIN' || user?.role === 'MANAGER'
 
@@ -163,12 +164,17 @@ export default function DashboardPage() {
   })
   const { data: departmentData } = useQuery({ queryKey: ['analytics', 'departments', selectedBranchId], queryFn: () => analyticsApi.getDepartmentAllocation(branchParams) })
   const { data: insights, refetch: refetchInsights, isFetching: insightsFetching } = useQuery({
-    queryKey: ['ai', 'insights'],
-    queryFn: aiApi.getInsights,
-    enabled: false,
+    queryKey: ['ai', 'insights', locale],
+    queryFn: () => aiApi.getInsights(locale),
+    enabled: canUseAi && aiEnabled,
     retry: false,
     staleTime: 5 * 60 * 1000,
   })
+
+  const requestInsights = () => {
+    if (!aiEnabled) setAiEnabled(true)
+    else void refetchInsights()
+  }
 
   if (isLoading) return <PageLoader />
 
@@ -311,18 +317,18 @@ export default function DashboardPage() {
         <CardHeader>
           <CardTitle>
             <span className="inline-flex items-center gap-2">
-              AI Insights
-              <span className="text-[9px] font-semibold uppercase tracking-wider text-vault-amber bg-vault-amber/10 px-1.5 py-0.5 rounded">Beta</span>
+              {t('ai.insights')}
+              <span className="text-[9px] font-semibold uppercase tracking-wider text-vault-amber bg-vault-amber/10 px-1.5 py-0.5 rounded">{t('ai.beta')}</span>
             </span>
           </CardTitle>
           <button
-            onClick={() => refetchInsights()}
+            onClick={requestInsights}
             disabled={insightsFetching}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium bg-vault-amber text-white hover:bg-vault-amber-dim disabled:opacity-60 transition-colors"
           >
             {insightsFetching
-              ? (<><Loader2 className="h-3.5 w-3.5 animate-spin" />Analyzing…</>)
-              : (<><Wand2 className="h-3.5 w-3.5" />{insights ? 'Regenerate' : 'Generate'}</>)}
+              ? (<><Loader2 className="h-3.5 w-3.5 animate-spin" />{t('ai.analyzing')}</>)
+              : (<><Wand2 className="h-3.5 w-3.5" />{insights ? t('ai.regenerate') : t('ai.generate')}</>)}
           </button>
         </CardHeader>
 
@@ -331,9 +337,9 @@ export default function DashboardPage() {
             <p className="text-[13.5px] leading-relaxed text-vault-text">{insights.summary}</p>
             <div className="grid sm:grid-cols-3 gap-5">
               {[
-                { title: 'Highlights', items: insights.highlights, dot: '#16A34A' },
-                { title: 'Risks', items: insights.risks, dot: '#DC2626' },
-                { title: 'Recommended actions', items: insights.recommendations, dot: '#17233D' },
+                { title: t('ai.highlights'), items: insights.highlights, dot: '#16A34A' },
+                { title: t('ai.risks'), items: insights.risks, dot: '#DC2626' },
+                { title: t('ai.actions'), items: insights.recommendations, dot: 'var(--av-brand)' },
               ].map((col) => (col.items?.length ? (
                 <div key={col.title}>
                   <p className="text-[10px] font-semibold uppercase tracking-[1.5px] text-vault-muted-text mb-2">{col.title}</p>
@@ -351,19 +357,20 @@ export default function DashboardPage() {
           </div>
         ) : insights?.error ? (
           <div className="py-6 text-center">
-            <p className="text-[12px] text-vault-red">Couldn't generate insights right now.</p>
-            <p className="text-[11px] text-vault-muted-text mt-0.5">The AI service may be unavailable — try again.</p>
+            <p className="text-[12px] text-vault-red">{t('ai.insightsError')}</p>
+            <p className="text-[11px] text-vault-muted-text mt-0.5">{t('ai.tryAgain')}</p>
           </div>
         ) : (
           <div className="py-8 text-center max-w-md mx-auto">
             <p className="text-[13px] text-vault-muted-text">
-              Generate an AI summary of your current portfolio — key highlights, risks, and recommended actions, based on live data.
+              {t('ai.insightsPlaceholder')}
             </p>
+            <p className="text-[12px] text-vault-muted-text mt-1">{t('ai.insightsClickGenerate')}</p>
             <button
-              onClick={() => refetchInsights()}
+              onClick={requestInsights}
               className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-[13px] font-medium bg-vault-amber text-white hover:bg-vault-amber-dim transition-colors"
             >
-              <Wand2 className="h-4 w-4" />Generate insights
+              <Wand2 className="h-4 w-4" />{t('ai.generateInsights')}
             </button>
           </div>
         )}
