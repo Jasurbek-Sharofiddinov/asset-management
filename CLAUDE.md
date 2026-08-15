@@ -10,7 +10,10 @@ AssetVault is a full-stack Bank Office Asset Management platform. Backend is Fas
 # Start backend (from project root)
 cd backend && ../venv/Scripts/uvicorn.exe app.main:app --reload --port 8000
 
-# Run seed script
+# Apply migrations (Alembic is the only schema authority — no create_all)
+cd backend && ../venv/Scripts/alembic.exe upgrade head
+
+# Run seed script (requires SEED_PASSWORD and an already-migrated schema)
 cd backend && ../venv/Scripts/python.exe seed.py
 
 # Install dependencies
@@ -39,7 +42,8 @@ docker-compose up --build
 ## Architecture
 
 ### Backend (backend/app/)
-- **main.py** — FastAPI app factory, CORS, router registration, exception handlers, lifespan auto-creates tables
+- **main.py** — FastAPI app factory, CORS, router registration, exception handlers (schema is NOT created here — Alembic only)
+- **entrypoint.sh** — container startup: wait for DB → `alembic upgrade head` → `python seed.py` (skipped when `SKIP_SEED=1`) → exec the CMD
 - **config.py** — pydantic-settings, reads from backend/.env
 - **database.py** — async SQLAlchemy engine + session factory
 - **dependencies.py** — get_db, get_current_user (JWT), require_role(*roles)

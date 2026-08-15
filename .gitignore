@@ -6,10 +6,15 @@ dist/
 build/
 venv/
 .env
+.env.*
+!.env.example
+
+.pytest_cache/
 
 # Node
 node_modules/
 frontend/dist/
+frontend/dist-admin/
 
 # IDE
 .vscode/
