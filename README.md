@@ -90,8 +90,14 @@ Create `backend/.env`:
 ```env
 DATABASE_URL=postgresql+asyncpg://postgres:<password>@localhost:5432/assetvault
 SYNC_DATABASE_URL=postgresql://postgres:<password>@localhost:5432/assetvault
-JWT_SECRET=dev-secret-change-me
+# Required: at least 32 bytes; not a known placeholder. Example:
+#   openssl rand -hex 32
+JWT_SECRET=local-dev-only-jwt-secret-do-not-use-in-prod
+SEED_PASSWORD=YourSecurePass1
+REDIS_URL=redis://:local-dev-only-redis-pass@localhost:6379/0
 ```
+
+See `.env.example` at the repo root for the full Compose/production variable list.
 
 Create and seed the database, then start the API:
 
@@ -99,7 +105,8 @@ Create and seed the database, then start the API:
 createdb assetvault           # or: psql -U postgres -c "CREATE DATABASE assetvault;"
 
 cd backend
-python seed.py                # loads sample data
+# SEED_PASSWORD is required when creating the initial users (skip if already seeded)
+SEED_PASSWORD='YourSecurePass1' python seed.py
 ../venv/bin/uvicorn app.main:app --reload --port 8000
 ```
 
@@ -128,31 +135,36 @@ npm run dev
 
 ## Deployment (Production)
 
-Live at **https://asset.datamou.uz** (Let's Encrypt HTTPS).
+Live at **https://asset.assetvault.uz** (Let's Encrypt HTTPS). During the
+`datamou.uz` → `assetvault.uz` cutover both apexes can be served together via
+`BASE_DOMAIN` + `LEGACY_BASE_DOMAIN` (see root `.env.example`).
 
 Deployed with Docker Compose on a Linux host using `docker-compose.prod.yml`, which differs from the local compose file:
 
-- **web** — multi-stage build (`frontend/Dockerfile.prod`): Vite builds static assets, served by Nginx, which also reverse-proxies `/api`, `/docs`, and `/openapi.json` to the backend and terminates TLS on 443 (HTTP → HTTPS redirect).
-- **backend / db / redis** — same images as local, but the DB and Redis ports are **not** published to the host.
-- **Secrets** (`POSTGRES_PASSWORD`, `JWT_SECRET`, `GROQ_API_KEY`) live in a server-only `.env` next to the compose file — never committed.
+- **web** — multi-stage build (`frontend/Dockerfile.prod`): Vite builds static assets, served by unprivileged Nginx (container ports 8080/8443 → host 80/443). Nginx config is an **envsubst template** (`frontend/nginx.conf.template`) rendered at container start from `NGINX_SERVER_NAMES` and `TLS_CERT_NAME`. Public `/docs`, `/openapi.json`, and `/redoc` are blocked at nginx.
+- **backend / db / redis** — same images as local, but the DB and Redis ports are **not** published to the host. Redis requires `REDIS_PASSWORD`. Backend CORS is derived from `BASE_DOMAIN` / `LEGACY_BASE_DOMAIN` (apex + `asset.{domain}`).
+- **Secrets** (`POSTGRES_PASSWORD`, `JWT_SECRET`, `REDIS_PASSWORD`, `GROQ_API_KEY`) live in a server-only `.env` next to the compose file — never committed. Pass `SEED_PASSWORD` when seeding (no prod default). Set `BASE_DOMAIN`, and optionally `LEGACY_BASE_DOMAIN`, `TLS_CERT_NAME`, `NGINX_SERVER_NAMES`.
 
 ```bash
 # on the server
 docker compose -f docker-compose.prod.yml up -d --build
-docker compose -f docker-compose.prod.yml exec -T backend python seed.py   # first run only
+docker compose -f docker-compose.prod.yml exec -T -e SEED_PASSWORD="$SEED_PASSWORD" backend python seed.py   # first run only
 ```
 
-TLS certificates are issued via a `certbot` container (webroot challenge) and auto-renewed by a twice-daily cron that reloads Nginx.
+TLS certificates are issued via a `certbot` container (webroot challenge) and auto-renewed by a twice-daily cron that reloads Nginx. `TLS_CERT_NAME` is the Let's Encrypt `live/` directory name and may differ from `BASE_DOMAIN` (transition certs or a future wildcard).
+
+> `deploy.sh` is a **legacy** HTTP/systemd path on port 8012; prefer `docker-compose.prod.yml`.
 
 ---
 
-## Login Credentials
+## Seed accounts
 
-| Role    | Email                  | Password   |
-|---------|------------------------|------------|
-| Admin   | admin@assetvault.uz    | Vault@2024 |
-| Manager | manager@assetvault.uz  | Vault@2024 |
-| Auditor | auditor@assetvault.uz  | Vault@2024 |
+After a successful `seed.py` run, the database contains `admin@assetvault.uz`,
+`manager@assetvault.uz`, and `auditor@assetvault.uz`. Their password is whatever
+you set in `SEED_PASSWORD` for that run — it is not published in this README.
+
+New accounts must be created by an **ADMIN** in Settings (or via `POST /api/auth/users`).
+Public self-registration of *users* is disabled; organizations apply through `/signup` and wait for platform activation.
 
 ---
 
@@ -162,6 +174,12 @@ TLS certificates are issued via a `certbot` container (webroot challenge) and au
 - JWT-based auth with access/refresh tokens
 - Four roles: **Admin**, **Manager**, **Viewer**, **Auditor**
 - Role-based access control on all endpoints and UI routes
+- Tenant **ADMIN** creates users in Settings with a temporary password; the user must change it on first login
+- Tenant **ADMIN** can reset another user's password (also forces a change on next login)
+
+### Future plans
+- Azure AD / Microsoft Entra ID SSO and employee/department directory sync (Enterprise)
+- Email invites (instead of sharing a temporary password)
 
 ### Asset Management
 - Full CRUD with soft delete
@@ -250,12 +268,18 @@ asset-management/
 ## API Endpoints
 
 ### Auth
-| Method | Endpoint             | Description        |
-|--------|----------------------|--------------------|
-| POST   | /api/auth/login      | Login, get tokens  |
-| POST   | /api/auth/refresh    | Refresh token      |
-| GET    | /api/auth/me         | Current user       |
-| POST   | /api/auth/logout     | Logout             |
+| Method | Endpoint                              | Description                          |
+|--------|---------------------------------------|--------------------------------------|
+| POST   | /api/auth/signup                      | Public trial application             |
+| POST   | /api/auth/login                       | Login, get tokens                    |
+| POST   | /api/auth/refresh                     | Refresh token                        |
+| GET    | /api/auth/me                          | Current user                         |
+| POST   | /api/auth/logout                      | Logout                               |
+| POST   | /api/auth/change-password             | Change own password                  |
+| GET    | /api/auth/users                       | List org users (ADMIN)               |
+| POST   | /api/auth/users                       | Create org user (ADMIN)              |
+| PATCH  | /api/auth/users/{id}                  | Update role / active (ADMIN)         |
+| POST   | /api/auth/users/{id}/reset-password   | Reset password (ADMIN)               |
 
 ### Assets
 | Method | Endpoint                   | Description              |

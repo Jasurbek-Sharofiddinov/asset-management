@@ -3,12 +3,23 @@ import uuid
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_db, require_role
+from app.dependencies import get_db, get_current_user, require_role
 from app.models.user import User, UserRole
 from app.schemas.assignment import AssignRequest, ReturnRequest, AssignmentResponse
-from app.services import assignment_service, audit_service, asset_service
+from app.services import assignment_service, audit_service
 
 router = APIRouter(prefix="/api/assets", tags=["assignments"])
+
+
+@router.get("/{asset_id}/assignments", response_model=list[AssignmentResponse])
+async def list_asset_assignments(
+    asset_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return await assignment_service.get_asset_assignments(
+        db, asset_id, current_user.organization_id
+    )
 
 
 def _get_client_ip(request: Request) -> str:
@@ -29,7 +40,7 @@ async def assign_asset(
     ),
 ):
     assignment = await assignment_service.assign_asset(
-        db, asset_id, body, current_user.id
+        db, asset_id, body, current_user.id, current_user.organization_id
     )
 
     emp_name = assignment.employee.full_name if assignment.employee else None
@@ -41,6 +52,7 @@ async def assign_asset(
         entity_type="asset",
         entity_id=asset_id,
         action="ASSIGN",
+        organization_id=current_user.organization_id,
         actor_id=current_user.id,
         actor_name=current_user.full_name,
         new_value={
@@ -81,7 +93,7 @@ async def return_asset(
     ),
 ):
     assignment = await assignment_service.return_asset(
-        db, asset_id, body.return_reason
+        db, asset_id, current_user.organization_id, body.return_reason
     )
 
     emp_name = assignment.employee.full_name if assignment.employee else None
@@ -93,6 +105,7 @@ async def return_asset(
         entity_type="asset",
         entity_id=asset_id,
         action="RETURN",
+        organization_id=current_user.organization_id,
         actor_id=current_user.id,
         actor_name=current_user.full_name,
         old_value={

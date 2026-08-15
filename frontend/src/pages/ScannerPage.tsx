@@ -8,10 +8,12 @@ import { Button } from '../components/ui/Button'
 import { StatusBadge } from '../components/ui/Badge'
 import { LoadingSpinner } from '../components/ui/LoadingSpinner'
 import { formatCurrency } from '../lib/utils'
+import { useLanguageStore } from '../stores/languageStore'
 import type { Asset } from '../types'
 
 export default function ScannerPage() {
   const navigate = useNavigate()
+  const { t } = useLanguageStore()
   const [isScanning, setIsScanning] = useState(false)
   const [scannedAsset, setScannedAsset] = useState<Asset | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -37,32 +39,44 @@ export default function ScannerPage() {
       setError(null)
 
       try {
-        // Extract asset ID from URL or use as-is
         let assetId: string | null = null
-        const urlMatch = decodedText.match(/\/assets\/([^/\s]+)/)
-        if (urlMatch) {
-          assetId = urlMatch[1]
-        } else if (decodedText.trim()) {
-          assetId = decodedText.trim()
+        const trimmed = decodedText.trim()
+
+        try {
+          const parsed = JSON.parse(trimmed)
+          if (parsed && typeof parsed === 'object' && typeof parsed.id === 'string') {
+            assetId = parsed.id
+          }
+        } catch {
+          // Not JSON — fall through to URL / raw id parsing
+        }
+
+        if (!assetId) {
+          const urlMatch = trimmed.match(/\/assets\/([^/\s"?]+)/)
+          if (urlMatch) {
+            assetId = urlMatch[1]
+          } else if (/^[0-9a-f-]{36}$/i.test(trimmed)) {
+            assetId = trimmed
+          }
         }
 
         if (assetId) {
           const asset = await assetsApi.getAsset(assetId)
           setScannedAsset(asset)
         } else {
-          setError('Invalid QR code. Expected an asset URL or ID.')
+          setError(t('scanner.invalidQr'))
         }
       } catch (err: any) {
         if (err.response?.status === 404) {
-          setError('Asset not found. The QR code may be outdated.')
+          setError(t('scanner.notFound'))
         } else {
-          setError('Failed to fetch asset details.')
+          setError(t('scanner.fetchFailed'))
         }
       } finally {
         setIsLoading(false)
       }
     },
-    [stopScanner]
+    [stopScanner, t]
   )
 
   const startScanner = useCallback(async () => {
@@ -89,12 +103,10 @@ export default function ScannerPage() {
         () => {} // ignore errors during scanning
       )
     } catch (err: any) {
-      setError(
-        'Camera access denied or unavailable. Please allow camera permissions and try again.'
-      )
+      setError(t('scanner.cameraDenied'))
       setIsScanning(false)
     }
-  }, [handleScanResult])
+  }, [handleScanResult, t])
 
   useEffect(() => {
     return () => {
@@ -110,10 +122,10 @@ export default function ScannerPage() {
       <Card className="overflow-hidden">
         <div className="text-center mb-4">
           <h2 className="text-lg font-semibold text-vault-text">
-            Scan Asset QR Code
+            {t('scanner.title')}
           </h2>
           <p className="text-sm text-vault-muted-text mt-1">
-            Point your camera at an asset QR code to view its details
+            {t('scanner.subtitle')}
           </p>
         </div>
 
@@ -128,7 +140,7 @@ export default function ScannerPage() {
           ) : (
             <div className="flex flex-col items-center justify-center min-h-[300px] p-8">
               {isLoading ? (
-                <LoadingSpinner size="lg" label="Looking up asset..." />
+                <LoadingSpinner size="lg" label={t('scanner.lookingUp')} />
               ) : (
                 <>
                   <div className="w-16 h-16 rounded-full bg-vault-surface border border-vault-border flex items-center justify-center mb-4">
@@ -136,8 +148,8 @@ export default function ScannerPage() {
                   </div>
                   <p className="text-sm text-vault-muted-text">
                     {scannedAsset
-                      ? 'Asset found. View details below.'
-                      : 'Press the button below to start scanning'}
+                      ? t('scanner.found')
+                      : t('scanner.pressStart')}
                   </p>
                 </>
               )}
@@ -149,12 +161,12 @@ export default function ScannerPage() {
         <div className="flex justify-center mt-4">
           {isScanning ? (
             <Button variant="secondary" onClick={stopScanner}>
-              Stop Scanning
+              {t('scanner.stop')}
             </Button>
           ) : (
             <Button onClick={startScanner}>
               <Camera className="h-4 w-4" />
-              {scannedAsset ? 'Scan Again' : 'Start Scanner'}
+              {scannedAsset ? t('scanner.scanAgain') : t('scanner.start')}
             </Button>
           )}
         </div>
@@ -171,7 +183,7 @@ export default function ScannerPage() {
             onClick={startScanner}
           >
             <RotateCcw className="h-4 w-4" />
-            Try Again
+            {t('scanner.tryAgain')}
           </Button>
         </div>
       )}
@@ -198,16 +210,16 @@ export default function ScannerPage() {
 
           <div className="grid grid-cols-2 gap-3 mt-4">
             <div className="p-2.5 rounded-lg bg-vault-muted border border-vault-border">
-              <p className="text-xs text-vault-muted-text">Category</p>
+              <p className="text-xs text-vault-muted-text">{t('scanner.category')}</p>
               <p className="text-sm text-vault-text mt-0.5">{scannedAsset.category}</p>
             </div>
             <div className="p-2.5 rounded-lg bg-vault-muted border border-vault-border">
-              <p className="text-xs text-vault-muted-text">Type</p>
+              <p className="text-xs text-vault-muted-text">{t('scanner.type')}</p>
               <p className="text-sm text-vault-text mt-0.5">{scannedAsset.asset_type}</p>
             </div>
             {scannedAsset.brand && (
               <div className="p-2.5 rounded-lg bg-vault-muted border border-vault-border">
-                <p className="text-xs text-vault-muted-text">Brand</p>
+                <p className="text-xs text-vault-muted-text">{t('scanner.brand')}</p>
                 <p className="text-sm text-vault-text mt-0.5">
                   {scannedAsset.brand} {scannedAsset.model || ''}
                 </p>
@@ -215,7 +227,7 @@ export default function ScannerPage() {
             )}
             {scannedAsset.purchase_price && (
               <div className="p-2.5 rounded-lg bg-vault-muted border border-vault-border">
-                <p className="text-xs text-vault-muted-text">Value</p>
+                <p className="text-xs text-vault-muted-text">{t('scanner.value')}</p>
                 <p className="font-mono text-sm text-vault-text mt-0.5">
                   {formatCurrency(Number(scannedAsset.purchase_price))}
                 </p>
@@ -223,7 +235,7 @@ export default function ScannerPage() {
             )}
             {scannedAsset.current_employee_name && (
               <div className="col-span-2 p-2.5 rounded-lg bg-ok-soft border border-vault-border">
-                <p className="text-xs text-vault-muted-text">Assigned To</p>
+                <p className="text-xs text-vault-muted-text">{t('scanner.assignedTo')}</p>
                 <p className="text-sm text-ok font-medium mt-0.5">
                   {scannedAsset.current_employee_name}
                 </p>
@@ -233,7 +245,7 @@ export default function ScannerPage() {
 
           <div className="flex items-center justify-center gap-2 mt-4 pt-3 border-t border-vault-border">
             <ExternalLink className="h-4 w-4 text-vault-amber" />
-            <span className="text-sm text-vault-amber font-medium">View Full Details</span>
+            <span className="text-sm text-vault-amber font-medium">{t('scanner.viewDetails')}</span>
           </div>
         </Card>
       )}

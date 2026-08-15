@@ -1,14 +1,12 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:15-alpine
     environment:
       POSTGRES_DB: assetvault
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -19,10 +17,13 @@ services:
 
   redis:
     image: redis:7-alpine
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-local-dev-only-redis-pass}
+    command: ["sh", "-c", "redis-server --requirepass \"$$REDIS_PASSWORD\""]
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "REDISCLI_AUTH=$$REDIS_PASSWORD redis-cli ping | grep PONG"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -30,12 +31,24 @@ services:
   backend:
     build: ./backend
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/assetvault
-      REDIS_URL: redis://redis:6379/0
-      JWT_SECRET: assetvault-production-secret-key-2024
-      CORS_ORIGINS: '["http://localhost:5173","http://localhost:3000","http://localhost"]'
+      ENVIRONMENT: development
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/assetvault
+      SYNC_DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/assetvault
+      REDIS_URL: redis://:${REDIS_PASSWORD:-local-dev-only-redis-pass}@redis:6379/0
+      # Distinct from blacklisted placeholders; >=32 bytes; clearly local-only.
+      JWT_SECRET: ${JWT_SECRET:-local-dev-only-jwt-secret-do-not-use-in-prod}
+      # Seed users password — prefer root .env; compose default is local-dev only.
+      SEED_PASSWORD: ${SEED_PASSWORD:-Vault@2024}
+      # Platform admin bootstrap (seed.py). No password default — set in root .env.
+      PLATFORM_ADMIN_EMAIL: ${PLATFORM_ADMIN_EMAIL:-}
+      PLATFORM_ADMIN_PASSWORD: ${PLATFORM_ADMIN_PASSWORD:-}
+      PLATFORM_ADMIN_FULL_NAME: ${PLATFORM_ADMIN_FULL_NAME:-Platform Operator}
+      CORS_ORIGINS: '["http://localhost:5173","http://localhost:5174","http://localhost:3000","http://localhost"]'
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_API_URL: ${GROQ_API_URL:-https://api.groq.com/openai/v1/chat/completions}
+      GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
     depends_on:
       db:
         condition: service_healthy
@@ -43,20 +56,47 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app
+    # backend/entrypoint.sh (image ENTRYPOINT) waits for the DB, runs
+    # `alembic upgrade head`, then the idempotent seed, before exec'ing this.
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
   frontend:
     build: ./frontend
     ports:
-      - "5173:5173"
+      - "127.0.0.1:5173:5173"
+    environment:
+      VITE_API_PROXY_TARGET: http://backend:8000
+      # Bind mounts on Windows/macOS Docker Desktop skip inotify; polling
+      # keeps HMR/watching alive. Leave unset for native host Vite.
+      VITE_USE_POLLING: "true"
     depends_on:
       - backend
     volumes:
       - ./frontend/src:/app/src
 
-  nginx:
-    image: nginx:alpine
+  # Platform operator console — separate Vite entry (admin.html → :5174).
+  # Does not share a rollup graph with the tenant SPA.
+  frontend-admin:
+    build: ./frontend
     ports:
-      - "80:80"
+      - "127.0.0.1:5174:5174"
+    environment:
+      VITE_API_PROXY_TARGET: http://backend:8000
+      VITE_USE_POLLING: "true"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend/src:/app/src
+    command: ["npm", "run", "dev:admin", "--", "--host", "0.0.0.0"]
+
+  # Optional reverse proxy on :80 (API -> backend, UI -> Vite). Prod uses
+  # frontend/Dockerfile.prod + frontend/nginx.conf.template (envsubst + TLS).
+  # Unprivileged nginx listens on 8080 inside the container. Dev stays on
+  # localhost only — no BASE_DOMAIN / TLS templating here.
+  nginx:
+    image: nginxinc/nginx-unprivileged:alpine
+    ports:
+      - "127.0.0.1:80:8080"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:

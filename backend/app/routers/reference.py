@@ -29,7 +29,11 @@ async def list_departments(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = await db.execute(select(Department).order_by(Department.name))
+    result = await db.execute(
+        select(Department)
+        .where(Department.organization_id == current_user.organization_id)
+        .order_by(Department.name)
+    )
     return result.scalars().all()
 
 
@@ -42,12 +46,18 @@ async def create_department(
     ),
 ):
     existing = await db.execute(
-        select(Department).where(Department.name == body.name)
+        select(Department).where(
+            Department.organization_id == current_user.organization_id,
+            Department.name == body.name,
+        )
     )
     if existing.scalar_one_or_none():
         raise ConflictException(f"Department '{body.name}' already exists")
 
-    dept = Department(name=body.name)
+    dept = Department(
+        organization_id=current_user.organization_id,
+        name=body.name,
+    )
     db.add(dept)
     await db.commit()
     await db.refresh(dept)
@@ -60,7 +70,12 @@ async def get_department(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = await db.execute(select(Department).where(Department.id == dept_id))
+    result = await db.execute(
+        select(Department).where(
+            Department.id == dept_id,
+            Department.organization_id == current_user.organization_id,
+        )
+    )
     dept = result.scalar_one_or_none()
     if not dept:
         raise NotFoundException(f"Department with id '{dept_id}' not found")
@@ -76,13 +91,22 @@ async def update_department(
         require_role(UserRole.ADMIN.value, UserRole.MANAGER.value)
     ),
 ):
-    result = await db.execute(select(Department).where(Department.id == dept_id))
+    result = await db.execute(
+        select(Department).where(
+            Department.id == dept_id,
+            Department.organization_id == current_user.organization_id,
+        )
+    )
     dept = result.scalar_one_or_none()
     if not dept:
         raise NotFoundException(f"Department with id '{dept_id}' not found")
 
     existing = await db.execute(
-        select(Department).where(Department.name == body.name, Department.id != dept_id)
+        select(Department).where(
+            Department.organization_id == current_user.organization_id,
+            Department.name == body.name,
+            Department.id != dept_id,
+        )
     )
     if existing.scalar_one_or_none():
         raise ConflictException(f"Department '{body.name}' already exists")
@@ -99,7 +123,12 @@ async def delete_department(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.ADMIN.value)),
 ):
-    result = await db.execute(select(Department).where(Department.id == dept_id))
+    result = await db.execute(
+        select(Department).where(
+            Department.id == dept_id,
+            Department.organization_id == current_user.organization_id,
+        )
+    )
     dept = result.scalar_one_or_none()
     if not dept:
         raise NotFoundException(f"Department with id '{dept_id}' not found")
@@ -116,7 +145,11 @@ async def list_branches(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = await db.execute(select(Branch).order_by(Branch.name))
+    result = await db.execute(
+        select(Branch)
+        .where(Branch.organization_id == current_user.organization_id)
+        .order_by(Branch.name)
+    )
     return result.scalars().all()
 
 
@@ -128,7 +161,20 @@ async def create_branch(
         require_role(UserRole.ADMIN.value, UserRole.MANAGER.value)
     ),
 ):
-    branch = Branch(name=body.name, location=body.location)
+    existing = await db.execute(
+        select(Branch).where(
+            Branch.organization_id == current_user.organization_id,
+            Branch.name == body.name,
+        )
+    )
+    if existing.scalar_one_or_none():
+        raise ConflictException(f"Branch '{body.name}' already exists")
+
+    branch = Branch(
+        organization_id=current_user.organization_id,
+        name=body.name,
+        location=body.location,
+    )
     db.add(branch)
     await db.commit()
     await db.refresh(branch)
@@ -141,7 +187,12 @@ async def get_branch(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = await db.execute(select(Branch).where(Branch.id == branch_id))
+    result = await db.execute(
+        select(Branch).where(
+            Branch.id == branch_id,
+            Branch.organization_id == current_user.organization_id,
+        )
+    )
     branch = result.scalar_one_or_none()
     if not branch:
         raise NotFoundException(f"Branch with id '{branch_id}' not found")
@@ -157,10 +208,25 @@ async def update_branch(
         require_role(UserRole.ADMIN.value, UserRole.MANAGER.value)
     ),
 ):
-    result = await db.execute(select(Branch).where(Branch.id == branch_id))
+    result = await db.execute(
+        select(Branch).where(
+            Branch.id == branch_id,
+            Branch.organization_id == current_user.organization_id,
+        )
+    )
     branch = result.scalar_one_or_none()
     if not branch:
         raise NotFoundException(f"Branch with id '{branch_id}' not found")
+
+    existing = await db.execute(
+        select(Branch).where(
+            Branch.organization_id == current_user.organization_id,
+            Branch.name == body.name,
+            Branch.id != branch_id,
+        )
+    )
+    if existing.scalar_one_or_none():
+        raise ConflictException(f"Branch '{body.name}' already exists")
 
     branch.name = body.name
     branch.location = body.location
@@ -175,7 +241,12 @@ async def delete_branch(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.ADMIN.value)),
 ):
-    result = await db.execute(select(Branch).where(Branch.id == branch_id))
+    result = await db.execute(
+        select(Branch).where(
+            Branch.id == branch_id,
+            Branch.organization_id == current_user.organization_id,
+        )
+    )
     branch = result.scalar_one_or_none()
     if not branch:
         raise NotFoundException(f"Branch with id '{branch_id}' not found")
@@ -192,7 +263,11 @@ async def list_employees(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = await db.execute(select(Employee).order_by(Employee.full_name))
+    result = await db.execute(
+        select(Employee)
+        .where(Employee.organization_id == current_user.organization_id)
+        .order_by(Employee.full_name)
+    )
     employees = result.scalars().all()
 
     responses = []
@@ -220,13 +295,38 @@ async def create_employee(
         require_role(UserRole.ADMIN.value, UserRole.MANAGER.value)
     ),
 ):
+    org_id = current_user.organization_id
     existing = await db.execute(
-        select(Employee).where(Employee.email == body.email)
+        select(Employee).where(
+            Employee.organization_id == org_id,
+            Employee.email == body.email,
+        )
     )
     if existing.scalar_one_or_none():
         raise ConflictException(f"Employee with email '{body.email}' already exists")
 
+    # Ensure referenced dept/branch belong to the same org
+    if body.department_id:
+        dept = await db.execute(
+            select(Department).where(
+                Department.id == body.department_id,
+                Department.organization_id == org_id,
+            )
+        )
+        if not dept.scalar_one_or_none():
+            raise NotFoundException(f"Department with id '{body.department_id}' not found")
+    if body.branch_id:
+        br = await db.execute(
+            select(Branch).where(
+                Branch.id == body.branch_id,
+                Branch.organization_id == org_id,
+            )
+        )
+        if not br.scalar_one_or_none():
+            raise NotFoundException(f"Branch with id '{body.branch_id}' not found")
+
     emp = Employee(
+        organization_id=org_id,
         full_name=body.full_name,
         email=body.email,
         department_id=body.department_id,
@@ -259,7 +359,12 @@ async def get_employee(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    result = await db.execute(select(Employee).where(Employee.id == emp_id))
+    result = await db.execute(
+        select(Employee).where(
+            Employee.id == emp_id,
+            Employee.organization_id == current_user.organization_id,
+        )
+    )
     emp = result.scalar_one_or_none()
     if not emp:
         raise NotFoundException(f"Employee with id '{emp_id}' not found")
@@ -285,7 +390,13 @@ async def update_employee(
         require_role(UserRole.ADMIN.value, UserRole.MANAGER.value)
     ),
 ):
-    result = await db.execute(select(Employee).where(Employee.id == emp_id))
+    org_id = current_user.organization_id
+    result = await db.execute(
+        select(Employee).where(
+            Employee.id == emp_id,
+            Employee.organization_id == org_id,
+        )
+    )
     emp = result.scalar_one_or_none()
     if not emp:
         raise NotFoundException(f"Employee with id '{emp_id}' not found")
@@ -295,6 +406,7 @@ async def update_employee(
     if "email" in update_data and update_data["email"] != emp.email:
         existing = await db.execute(
             select(Employee).where(
+                Employee.organization_id == org_id,
                 Employee.email == update_data["email"],
                 Employee.id != emp_id,
             )
@@ -302,6 +414,30 @@ async def update_employee(
         if existing.scalar_one_or_none():
             raise ConflictException(
                 f"Employee with email '{update_data['email']}' already exists"
+            )
+
+    if "department_id" in update_data and update_data["department_id"] is not None:
+        dept = await db.execute(
+            select(Department).where(
+                Department.id == update_data["department_id"],
+                Department.organization_id == org_id,
+            )
+        )
+        if not dept.scalar_one_or_none():
+            raise NotFoundException(
+                f"Department with id '{update_data['department_id']}' not found"
+            )
+
+    if "branch_id" in update_data and update_data["branch_id"] is not None:
+        br = await db.execute(
+            select(Branch).where(
+                Branch.id == update_data["branch_id"],
+                Branch.organization_id == org_id,
+            )
+        )
+        if not br.scalar_one_or_none():
+            raise NotFoundException(
+                f"Branch with id '{update_data['branch_id']}' not found"
             )
 
     for field, value in update_data.items():
@@ -332,7 +468,12 @@ async def delete_employee(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.ADMIN.value)),
 ):
-    result = await db.execute(select(Employee).where(Employee.id == emp_id))
+    result = await db.execute(
+        select(Employee).where(
+            Employee.id == emp_id,
+            Employee.organization_id == current_user.organization_id,
+        )
+    )
     emp = result.scalar_one_or_none()
     if not emp:
         raise NotFoundException(f"Employee with id '{emp_id}' not found")

@@ -2,7 +2,7 @@ import csv
 import io
 import math
 import uuid
-from datetime import datetime, date
+from datetime import date
 from typing import Optional, List
 
 from sqlalchemy import select, func, and_
@@ -17,6 +17,7 @@ async def log_action(
     entity_type: str,
     entity_id: uuid.UUID,
     action: str,
+    organization_id: uuid.UUID,
     actor_id: Optional[uuid.UUID] = None,
     actor_name: Optional[str] = None,
     old_value: Optional[dict] = None,
@@ -25,6 +26,7 @@ async def log_action(
     ip_address: Optional[str] = None,
 ) -> AuditLog:
     log_entry = AuditLog(
+        organization_id=organization_id,
         entity_type=entity_type,
         entity_id=entity_id,
         action=action,
@@ -43,6 +45,7 @@ async def log_action(
 
 async def get_audit_logs(
     db: AsyncSession,
+    organization_id: uuid.UUID,
     page: int = 1,
     size: int = 20,
     entity_type: Optional[str] = None,
@@ -52,8 +55,10 @@ async def get_audit_logs(
     date_from: Optional[date] = None,
     date_to: Optional[date] = None,
 ) -> AuditListResponse:
-    base_query = select(AuditLog)
-    count_query = select(func.count(AuditLog.id))
+    base_query = select(AuditLog).where(AuditLog.organization_id == organization_id)
+    count_query = select(func.count(AuditLog.id)).where(
+        AuditLog.organization_id == organization_id
+    )
 
     filters = []
     if entity_type:
@@ -92,10 +97,12 @@ async def get_entity_history(
     db: AsyncSession,
     entity_type: str,
     entity_id: uuid.UUID,
+    organization_id: uuid.UUID,
 ) -> List[AuditLogResponse]:
     result = await db.execute(
         select(AuditLog)
         .where(
+            AuditLog.organization_id == organization_id,
             AuditLog.entity_type == entity_type,
             AuditLog.entity_id == entity_id,
         )
@@ -107,12 +114,13 @@ async def get_entity_history(
 
 async def export_audit_csv(
     db: AsyncSession,
+    organization_id: uuid.UUID,
     entity_type: Optional[str] = None,
     action: Optional[str] = None,
     date_from: Optional[date] = None,
     date_to: Optional[date] = None,
 ) -> str:
-    query = select(AuditLog)
+    query = select(AuditLog).where(AuditLog.organization_id == organization_id)
     filters = []
 
     if entity_type:

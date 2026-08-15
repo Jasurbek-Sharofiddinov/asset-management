@@ -1,0 +1,73 @@
+# HTTP: serve ACME challenge, redirect everything else to HTTPS.
+# No HSTS here — certs may not exist yet on first boot / renewals.
+# Templated vars (envsubst via NGINX_ENVSUBST_FILTER): NGINX_SERVER_NAMES, TLS_CERT_NAME.
+# Nginx runtime vars ($host, $uri, …) are intentionally left unsubstituted.
+server {
+    listen 8080;
+    server_name ${NGINX_SERVER_NAMES};
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# HTTPS: the app (unprivileged nginx listens on 8443)
+server {
+    listen 8443 ssl;
+    http2 on;
+    server_name ${NGINX_SERVER_NAMES};
+
+    ssl_certificate     /etc/letsencrypt/live/${TLS_CERT_NAME}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${TLS_CERT_NAME}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+
+    # Security headers (HSTS only after TLS is terminated here)
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    # Fonts: Google Fonts CSS + gstatic files (see frontend/index.html).
+    # style-src 'unsafe-inline': React components and Recharts use inline styles.
+    # connect-src 'self' only: Groq/AI calls are server-to-server via /api/ai.
+    # worker-src blob: required by html5-qrcode camera scanner.
+    # img-src data: blob: for QR SVG export and audit CSV blob downloads.
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; media-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests" always;
+
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # API -> backend container
+    location /api/ {
+        proxy_pass http://backend:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+
+    # Block public Swagger / OpenAPI / ReDoc (app still serves them on :8000
+    # inside the network; disable at FastAPI layer in main.py if desired).
+    location = /docs { return 404; }
+    location = /openapi.json { return 404; }
+    location = /redoc { return 404; }
+    location /redoc { return 404; }
+
+    # Cache build assets aggressively (no add_header here — would drop
+    # inherited security headers from the server block).
+    location /assets/ {
+        expires 30d;
+        try_files $uri =404;
+    }
+
+    # SPA fallback
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}

@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useAuthStore } from './stores/authStore'
@@ -10,7 +10,8 @@ import type { UserRole } from './types'
 // Lazy load pages
 const LandingPage = lazy(() => import('./pages/LandingPage'))
 const LoginPage = lazy(() => import('./pages/LoginPage'))
-const RegisterPage = lazy(() => import('./pages/RegisterPage'))
+const SignupPage = lazy(() => import('./pages/SignupPage'))
+const ChangePasswordPage = lazy(() => import('./pages/ChangePasswordPage'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const AssetsPage = lazy(() => import('./pages/AssetsPage'))
 const AssetDetailPage = lazy(() => import('./pages/AssetDetailPage'))
@@ -19,15 +20,33 @@ const AuditPage = lazy(() => import('./pages/AuditPage'))
 const ScannerPage = lazy(() => import('./pages/ScannerPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 
+function isRetryableError(error: unknown): boolean {
+  const status = (error as { response?: { status?: number } })?.response?.status
+  return status === undefined || status < 400 || status >= 500
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 1,
+      retry: (failureCount, error) => isRetryableError(error) && failureCount < 1,
       refetchOnWindowFocus: false,
       staleTime: 30000,
     },
+    mutations: {
+      retry: false,
+    },
   },
 })
+
+function AuthBootstrap() {
+  const { isAuthenticated, loadUser } = useAuthStore()
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadUser()
+    }
+  }, [isAuthenticated, loadUser])
+  return null
+}
 
 function ProtectedRoute({
   children,
@@ -42,6 +61,10 @@ function ProtectedRoute({
     return <Navigate to="/login" replace />
   }
 
+  if (user?.must_change_password) {
+    return <Navigate to="/change-password" replace />
+  }
+
   if (allowedRoles && user?.role && !allowedRoles.includes(user.role)) {
     return <Navigate to="/dashboard" replace />
   }
@@ -50,13 +73,27 @@ function ProtectedRoute({
 }
 
 function PublicRoute({ children, redirectIfAuth = true }: { children: React.ReactNode; redirectIfAuth?: boolean }) {
-  const { isAuthenticated } = useAuthStore()
+  const { isAuthenticated, user } = useAuthStore()
 
   if (redirectIfAuth && isAuthenticated) {
+    if (user?.must_change_password) {
+      return <Navigate to="/change-password" replace />
+    }
     return <Navigate to="/dashboard" replace />
   }
 
   return <>{children}</>
+}
+
+function ChangePasswordRoute() {
+  const { isAuthenticated, user } = useAuthStore()
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+  if (!user?.must_change_password) {
+    return <Navigate to="/dashboard" replace />
+  }
+  return <ChangePasswordPage />
 }
 
 export default function App() {
@@ -64,9 +101,9 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
         <BrowserRouter>
+          <AuthBootstrap />
           <Suspense fallback={<PageLoader />}>
             <Routes>
-              {/* Public routes */}
               <Route
                 path="/"
                 element={
@@ -84,15 +121,15 @@ export default function App() {
                 }
               />
               <Route
-                path="/register"
+                path="/signup"
                 element={
                   <PublicRoute>
-                    <RegisterPage />
+                    <SignupPage />
                   </PublicRoute>
                 }
               />
+              <Route path="/change-password" element={<ChangePasswordRoute />} />
 
-              {/* Protected routes with layout */}
               <Route
                 element={
                   <ProtectedRoute>
@@ -107,7 +144,7 @@ export default function App() {
                 <Route
                   path="/audit"
                   element={
-                    <ProtectedRoute allowedRoles={['ADMIN', 'AUDITOR', 'MANAGER']}>
+                    <ProtectedRoute allowedRoles={['ADMIN', 'AUDITOR']}>
                       <AuditPage />
                     </ProtectedRoute>
                   }
@@ -123,7 +160,6 @@ export default function App() {
                 />
               </Route>
 
-              {/* Default redirect */}
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           </Suspense>

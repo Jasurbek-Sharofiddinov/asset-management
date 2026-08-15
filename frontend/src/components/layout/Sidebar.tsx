@@ -22,7 +22,7 @@ const navGroups = [
   ]},
   { labelKey: 'nav.reporting' as TranslationKey, items: [
     { path: '/analytics', labelKey: 'nav.analytics' as TranslationKey, icon: BarChart3 },
-    { path: '/audit', labelKey: 'nav.auditLog' as TranslationKey, icon: ScrollText, roles: ['ADMIN', 'AUDITOR', 'MANAGER'] },
+    { path: '/audit', labelKey: 'nav.auditLog' as TranslationKey, icon: ScrollText, roles: ['ADMIN', 'AUDITOR'] },
   ]},
   { labelKey: 'nav.system' as TranslationKey, items: [
     { path: '/settings', labelKey: 'nav.settings' as TranslationKey, icon: Settings, roles: ['ADMIN', 'MANAGER'] },

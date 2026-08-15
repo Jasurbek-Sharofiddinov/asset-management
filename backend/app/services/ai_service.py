@@ -1,7 +1,10 @@
 import json
+import logging
 import re
 import httpx
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 CATEGORIES = ["IT", "OFFICE", "SECURITY", "NETWORKING", "PRINTING", "SERVER", "MOBILE", "FURNITURE", "OTHER"]
 
@@ -68,7 +71,8 @@ Respond with ONLY a JSON object:
         result = await call_llm(system_prompt, user_prompt, max_tokens=150)
         return json.loads(_clean_json(result))
     except Exception as e:
-        return {"category": "OTHER", "confidence": 0.0, "reason": f"AI unavailable: {str(e)}"}
+        logger.exception("AI category recommendation failed: %s", e)
+        return {"category": "OTHER", "confidence": 0.0, "reason": "AI unavailable"}
 
 
 async def generate_insights(analytics_data: dict) -> dict:
@@ -90,12 +94,13 @@ Be specific with numbers. Keep each item to 1-2 sentences. Focus on actionable i
         result = await call_llm(system_prompt, user_prompt, max_tokens=800)
         return json.loads(_clean_json(result))
     except Exception as e:
+        logger.exception("AI insights generation failed: %s", e)
         return {
             "summary": "AI insights unavailable",
             "highlights": [],
             "risks": [],
             "recommendations": [],
-            "error": str(e),
+            "error": "AI service unavailable",
         }
 
 
@@ -122,10 +127,11 @@ Be specific with numbers and categories. Base predictions on the actual data pro
         result = await call_llm(system_prompt, user_prompt, max_tokens=1000)
         return json.loads(_clean_json(result))
     except Exception as e:
+        logger.exception("AI predictions failed: %s", e)
         return {
             "predicted_purchases": [],
             "maintenance_forecast": [],
             "staffing_impact": "AI predictions unavailable",
             "budget_outlook": "Unable to generate forecast",
-            "error": str(e),
+            "error": "AI service unavailable",
         }

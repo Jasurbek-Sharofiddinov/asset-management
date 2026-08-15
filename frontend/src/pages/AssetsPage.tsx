@@ -10,6 +10,7 @@ import { Button } from '../components/ui/Button'
 import { StatusBadge, CategoryBadge } from '../components/ui/Badge'
 import { AssetForm } from '../components/assets/AssetForm'
 import { formatDate, formatCurrency } from '../lib/utils'
+import { buildAssetQueryParams } from '../lib/assetQuery'
 import { useLanguageStore } from '../stores/languageStore'
 import type { Asset, AssetStatus, AssetCategory } from '../types'
 
@@ -63,12 +64,18 @@ export default function AssetsPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['assets', params, selectedStatuses, selectedCategories, selectedBranchId],
     queryFn: () =>
-      assetsApi.getAssets({
-        ...params,
-        status: selectedStatuses.length === 1 ? selectedStatuses[0] : undefined,
-        category: selectedCategories.length === 1 ? selectedCategories[0] : undefined,
-        branch_id: selectedBranchId || undefined,
-      }),
+      assetsApi.getAssets(
+        buildAssetQueryParams({
+          page: params.page,
+          size: params.size,
+          search: params.search,
+          statuses: selectedStatuses,
+          categories: selectedCategories,
+          branch_id: selectedBranchId || undefined,
+          sort_by: params.sort_by,
+          sort_order: params.sort_order,
+        }),
+      ),
   })
 
   const handleSearch = useCallback(() => {

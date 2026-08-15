@@ -27,6 +27,8 @@ import { useToast } from '../components/ui/Toast'
 import { AssetForm } from '../components/assets/AssetForm'
 import { AssignmentPanel } from '../components/assets/AssignmentPanel'
 import { formatDate, formatDateTime, formatCurrency } from '../lib/utils'
+import { canTransition } from '../lib/assetStatus'
+import { useLanguageStore } from '../stores/languageStore'
 import type { AssetStatus } from '../types'
 
 type TabId = 'overview' | 'history' | 'qr' | 'assignments'
@@ -36,6 +38,7 @@ export default function AssetDetailPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const toast = useToast()
+  const { t } = useLanguageStore()
   const [activeTab, setActiveTab] = useState<TabId>('overview')
   const [showEditForm, setShowEditForm] = useState(false)
   const [showAssignPanel, setShowAssignPanel] = useState(false)
@@ -68,12 +71,12 @@ export default function AssetDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['asset', assetId] })
       queryClient.invalidateQueries({ queryKey: ['assets'] })
-      toast.success('Status updated successfully')
+      toast.success(t('detail.statusUpdated'))
       setShowStatusModal(null)
       setStatusChangeReason('')
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.detail || 'Failed to update status')
+      toast.error(err.response?.data?.detail || t('detail.statusUpdateFailed'))
     },
   })
 
@@ -81,19 +84,19 @@ export default function AssetDetailPage() {
   if (!asset) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px]">
-        <p className="text-vault-muted-text">Asset not found</p>
+        <p className="text-vault-muted-text">{t('detail.notFound')}</p>
         <Button variant="ghost" className="mt-4" onClick={() => navigate('/assets')}>
-          Back to Assets
+          {t('detail.backToAssets')}
         </Button>
       </div>
     )
   }
 
   const tabs: { id: TabId; label: string }[] = [
-    { id: 'overview', label: 'Overview' },
-    { id: 'history', label: 'History' },
-    { id: 'qr', label: 'QR Code' },
-    { id: 'assignments', label: 'Assignments' },
+    { id: 'overview', label: t('detail.overview') },
+    { id: 'history', label: t('detail.history') },
+    { id: 'qr', label: t('detail.qrCode') },
+    { id: 'assignments', label: t('detail.assignments') },
   ]
 
   const handleDownloadQR = () => {
@@ -135,11 +138,11 @@ export default function AssetDetailPage() {
   }
 
   const quickStatusActions = [
-    { status: 'IN_REPAIR' as AssetStatus, icon: Wrench, label: 'Send to Repair', color: 'text-vault-yellow' },
-    { status: 'LOST' as AssetStatus, icon: AlertTriangle, label: 'Mark Lost', color: 'text-vault-red' },
-    { status: 'WRITTEN_OFF' as AssetStatus, icon: Trash2, label: 'Write Off', color: 'text-vault-red' },
-    { status: 'REGISTERED' as AssetStatus, icon: Package, label: 'Reset to Registered', color: 'text-vault-gray' },
-  ].filter((a) => a.status !== asset.status)
+    { status: 'IN_REPAIR' as AssetStatus, icon: Wrench, label: t('detail.sendToRepair'), color: 'text-vault-yellow' },
+    { status: 'LOST' as AssetStatus, icon: AlertTriangle, label: t('detail.markLost'), color: 'text-vault-red' },
+    { status: 'WRITTEN_OFF' as AssetStatus, icon: Trash2, label: t('detail.writeOff'), color: 'text-vault-red' },
+    { status: 'REGISTERED' as AssetStatus, icon: Package, label: t('detail.resetRegistered'), color: 'text-vault-gray' },
+  ].filter((a) => a.status !== asset.status && canTransition(asset.status, a.status))
 
   return (
     <div className="space-y-6">
@@ -150,7 +153,7 @@ export default function AssetDetailPage() {
           className="flex items-center gap-2 text-sm text-vault-muted-text hover:text-vault-text mb-4 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Assets
+          {t('detail.backToAssets')}
         </button>
 
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
@@ -174,12 +177,12 @@ export default function AssetDetailPage() {
           <div className="flex flex-wrap items-center gap-2">
             <Button variant="secondary" size="sm" onClick={() => setShowEditForm(true)}>
               <Edit className="h-4 w-4" />
-              Edit
+              {t('detail.edit')}
             </Button>
             {asset.status !== 'ASSIGNED' && (
               <Button size="sm" onClick={() => setShowAssignPanel(true)}>
                 <UserPlus className="h-4 w-4" />
-                Assign
+                {t('detail.assign')}
               </Button>
             )}
             {asset.status === 'ASSIGNED' && (
@@ -189,7 +192,7 @@ export default function AssetDetailPage() {
                 onClick={() => setShowAssignPanel(true)}
               >
                 <ArrowLeftRight className="h-4 w-4" />
-                Manage
+                {t('detail.manage')}
               </Button>
             )}
           </div>
@@ -220,35 +223,35 @@ export default function AssetDetailPage() {
           <div className="lg:col-span-2">
             <Card>
               <h3 className="text-lg font-semibold text-vault-text mb-4">
-                Asset Details
+                {t('detail.assetDetails')}
               </h3>
               <div className="grid grid-cols-2 gap-4">
                 {[
-                  { label: 'Name', value: asset.name },
-                  { label: 'Type', value: asset.asset_type },
-                  { label: 'Category', value: asset.category },
-                  { label: 'Serial Number', value: asset.serial_number, mono: true },
-                  { label: 'Brand', value: asset.brand || '-' },
-                  { label: 'Model', value: asset.model || '-' },
+                  { label: t('detail.name'), value: asset.name },
+                  { label: t('detail.type'), value: asset.asset_type },
+                  { label: t('detail.category'), value: asset.category },
+                  { label: t('detail.serialNumber'), value: asset.serial_number, mono: true },
+                  { label: t('detail.brand'), value: asset.brand || '-' },
+                  { label: t('detail.model'), value: asset.model || '-' },
                   {
-                    label: 'Purchase Date',
+                    label: t('detail.purchaseDate'),
                     value: asset.purchase_date ? formatDate(asset.purchase_date) : '-',
                     icon: Calendar,
                   },
                   {
-                    label: 'Purchase Price',
+                    label: t('detail.purchasePrice'),
                     value: asset.purchase_price
                       ? formatCurrency(Number(asset.purchase_price))
                       : '-',
                     icon: DollarSign,
                   },
                   {
-                    label: 'Warranty Expiry',
+                    label: t('detail.warrantyExpiry'),
                     value: asset.warranty_expiry ? formatDate(asset.warranty_expiry) : '-',
                     icon: Shield,
                   },
                   {
-                    label: 'Created',
+                    label: t('detail.created'),
                     value: formatDateTime(asset.created_at),
                     icon: Clock,
                   },
@@ -267,7 +270,7 @@ export default function AssetDetailPage() {
               </div>
               {asset.description && (
                 <div className="mt-4 p-3 rounded-lg bg-vault-muted border border-vault-border">
-                  <p className="text-xs text-vault-muted-text mb-1">Description</p>
+                  <p className="text-xs text-vault-muted-text mb-1">{t('detail.description')}</p>
                   <p className="text-sm text-vault-text">{asset.description}</p>
                 </div>
               )}
@@ -279,13 +282,13 @@ export default function AssetDetailPage() {
             {/* Current Assignment */}
             <Card>
               <h3 className="text-base font-semibold text-vault-text mb-3">
-                Current Assignment
+                {t('detail.currentAssignment')}
               </h3>
               {asset.status === 'ASSIGNED' ? (
                 <div className="space-y-2">
                   {asset.current_employee_name && (
                     <div className="p-3 rounded-lg bg-vault-muted border border-vault-border">
-                      <p className="text-xs text-vault-muted-text">Employee</p>
+                      <p className="text-xs text-vault-muted-text">{t('assign.employee')}</p>
                       <p className="text-sm text-vault-text font-medium">
                         {asset.current_employee_name}
                       </p>
@@ -293,7 +296,7 @@ export default function AssetDetailPage() {
                   )}
                   {asset.current_department_name && (
                     <div className="p-3 rounded-lg bg-vault-muted border border-vault-border">
-                      <p className="text-xs text-vault-muted-text">Department</p>
+                      <p className="text-xs text-vault-muted-text">{t('assign.department')}</p>
                       <p className="text-sm text-vault-text font-medium">
                         {asset.current_department_name}
                       </p>
@@ -301,7 +304,7 @@ export default function AssetDetailPage() {
                   )}
                   {asset.current_branch_name && (
                     <div className="p-3 rounded-lg bg-vault-muted border border-vault-border">
-                      <p className="text-xs text-vault-muted-text">Branch</p>
+                      <p className="text-xs text-vault-muted-text">{t('assign.branch')}</p>
                       <p className="text-sm text-vault-text font-medium">
                         {asset.current_branch_name}
                       </p>
@@ -310,7 +313,7 @@ export default function AssetDetailPage() {
                 </div>
               ) : (
                 <p className="text-sm text-vault-muted-text py-4 text-center">
-                  Not currently assigned
+                  {t('detail.notAssigned')}
                 </p>
               )}
             </Card>
@@ -319,7 +322,7 @@ export default function AssetDetailPage() {
             {asset.warranty_expiry && (
               <Card>
                 <h3 className="text-base font-semibold text-vault-text mb-3">
-                  Warranty Status
+                  {t('detail.warrantyStatus')}
                 </h3>
                 {(() => {
                   const expiry = new Date(asset.warranty_expiry)
@@ -350,11 +353,11 @@ export default function AssetDetailPage() {
                         }`}
                       >
                         {isExpired
-                          ? `Expired ${Math.abs(daysRemaining)} days ago`
-                          : `${daysRemaining} days remaining`}
+                          ? t('detail.expiredAgo').replace('{days}', String(Math.abs(daysRemaining)))
+                          : t('detail.daysRemaining').replace('{days}', String(daysRemaining))}
                       </p>
                       <p className="text-xs text-vault-muted-text mt-1">
-                        Expires: {formatDate(asset.warranty_expiry)}
+                        {t('detail.expires')}: {formatDate(asset.warranty_expiry)}
                       </p>
                     </div>
                   )
@@ -365,7 +368,7 @@ export default function AssetDetailPage() {
             {/* Quick Status Actions */}
             <Card>
               <h3 className="text-base font-semibold text-vault-text mb-3">
-                Quick Actions
+                {t('detail.quickActions')}
               </h3>
               <div className="space-y-2">
                 {quickStatusActions.map((action) => (
@@ -387,7 +390,7 @@ export default function AssetDetailPage() {
       {activeTab === 'history' && (
         <Card>
           <h3 className="text-lg font-semibold text-vault-text mb-4">
-            Assignment History
+            {t('detail.assignmentHistory')}
           </h3>
           {history.length > 0 ? (
             <div className="relative">
@@ -402,7 +405,7 @@ export default function AssetDetailPage() {
                     <div className="flex-1 p-3 rounded-lg bg-vault-muted border border-vault-border">
                       <div className="flex items-center justify-between gap-2 mb-2">
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${event.returned_at ? 'bg-vault-muted text-vault-muted-text' : 'bg-ok-soft text-ok'}`}>
-                          {event.returned_at ? 'Returned' : 'Active'}
+                          {event.returned_at ? t('detail.returned') : t('detail.active')}
                         </span>
                         <span className="text-xs text-vault-muted-text">
                           {formatDateTime(event.assigned_at)}
@@ -411,37 +414,37 @@ export default function AssetDetailPage() {
                       <div className="grid grid-cols-2 gap-2 text-sm">
                         {event.employee_name && (
                           <div>
-                            <p className="text-[10px] text-vault-muted-text uppercase tracking-wider">Employee</p>
+                            <p className="text-[10px] text-vault-muted-text uppercase tracking-wider">{t('assign.employee')}</p>
                             <p className="text-vault-text">{event.employee_name}</p>
                           </div>
                         )}
                         {event.department_name && (
                           <div>
-                            <p className="text-[10px] text-vault-muted-text uppercase tracking-wider">Department</p>
+                            <p className="text-[10px] text-vault-muted-text uppercase tracking-wider">{t('assign.department')}</p>
                             <p className="text-vault-text">{event.department_name}</p>
                           </div>
                         )}
                         {event.branch_name && (
                           <div>
-                            <p className="text-[10px] text-vault-muted-text uppercase tracking-wider">Branch</p>
+                            <p className="text-[10px] text-vault-muted-text uppercase tracking-wider">{t('assign.branch')}</p>
                             <p className="text-vault-text">{event.branch_name}</p>
                           </div>
                         )}
                         {event.assigner_name && (
                           <div>
-                            <p className="text-[10px] text-vault-muted-text uppercase tracking-wider">Assigned by</p>
+                            <p className="text-[10px] text-vault-muted-text uppercase tracking-wider">{t('detail.assignedBy')}</p>
                             <p className="text-vault-text">{event.assigner_name}</p>
                           </div>
                         )}
                       </div>
                       {event.returned_at && (
                         <p className="text-xs text-vault-muted-text mt-2">
-                          Returned: {formatDateTime(event.returned_at)}
+                          {t('detail.returned')}: {formatDateTime(event.returned_at)}
                           {event.return_reason ? ` — ${event.return_reason}` : ''}
                         </p>
                       )}
                       {event.notes && (
-                        <p className="text-xs text-vault-muted-text mt-1">Note: {event.notes}</p>
+                        <p className="text-xs text-vault-muted-text mt-1">{t('assign.notes')}: {event.notes}</p>
                       )}
                     </div>
                   </div>
@@ -450,7 +453,7 @@ export default function AssetDetailPage() {
             </div>
           ) : (
             <p className="text-sm text-vault-muted-text text-center py-8">
-              No assignment history found
+              {t('detail.noHistory')}
             </p>
           )}
         </Card>
@@ -459,7 +462,7 @@ export default function AssetDetailPage() {
       {activeTab === 'qr' && (
         <Card className="flex flex-col items-center py-8">
           <h3 className="text-lg font-semibold text-vault-text mb-6">
-            QR Code
+            {t('detail.qrCode')}
           </h3>
           <div className="p-6 bg-white rounded-2xl border border-vault-border mb-6">
             <QRCodeSVG
@@ -476,11 +479,11 @@ export default function AssetDetailPage() {
           <div className="flex gap-3">
             <Button variant="secondary" onClick={handleDownloadQR}>
               <Download className="h-4 w-4" />
-              Download PNG
+              {t('detail.downloadPng')}
             </Button>
             <Button variant="secondary" onClick={handlePrintQR}>
               <Printer className="h-4 w-4" />
-              Print
+              {t('detail.print')}
             </Button>
           </div>
         </Card>
@@ -489,7 +492,7 @@ export default function AssetDetailPage() {
       {activeTab === 'assignments' && (
         <Card>
           <h3 className="text-lg font-semibold text-vault-text mb-4">
-            Assignment History
+            {t('detail.assignmentHistory')}
           </h3>
           {assignments.length > 0 ? (
             <div className="overflow-x-auto">
@@ -497,22 +500,22 @@ export default function AssetDetailPage() {
                 <thead>
                   <tr className="border-b border-vault-border">
                     <th className="px-4 py-3 text-left text-xs font-semibold text-vault-muted-text uppercase tracking-wider">
-                      Employee
+                      {t('assign.employee')}
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-vault-muted-text uppercase tracking-wider">
-                      Department
+                      {t('assign.department')}
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-vault-muted-text uppercase tracking-wider">
-                      Branch
+                      {t('assign.branch')}
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-vault-muted-text uppercase tracking-wider">
-                      Assigned At
+                      {t('detail.assignedAt')}
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-vault-muted-text uppercase tracking-wider">
-                      Returned At
+                      {t('detail.returnedAt')}
                     </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-vault-muted-text uppercase tracking-wider">
-                      Notes
+                      {t('assign.notes')}
                     </th>
                   </tr>
                 </thead>
@@ -536,7 +539,7 @@ export default function AssetDetailPage() {
                       </td>
                       <td className="px-4 py-3 text-vault-muted-text">
                         {a.returned_at ? formatDateTime(a.returned_at) : (
-                          <span className="text-vault-green">Active</span>
+                          <span className="text-vault-green">{t('detail.active')}</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-vault-muted-text">
@@ -549,7 +552,7 @@ export default function AssetDetailPage() {
             </div>
           ) : (
             <p className="text-sm text-vault-muted-text text-center py-8">
-              No assignments found
+              {t('detail.noAssignments')}
             </p>
           )}
         </Card>
@@ -564,26 +567,26 @@ export default function AssetDetailPage() {
           />
           <div className="relative bg-vault-surface border border-vault-border rounded-xl p-6 w-full max-w-md shadow-xl">
             <h3 className="text-lg font-semibold text-vault-text mb-2">
-              Change Status to {showStatusModal.replace('_', ' ')}
+              {t('detail.changeStatusTo')} {showStatusModal.replace('_', ' ')}
             </h3>
             <p className="text-sm text-vault-muted-text mb-4">
-              Are you sure you want to change the status of "{asset.name}"?
+              {t('detail.changeStatusConfirm')} "{asset.name}"?
             </p>
             <div className="mb-4">
               <label className="block text-sm font-medium text-vault-text mb-1.5">
-                Reason (optional)
+                {t('detail.reasonOptional')}
               </label>
               <textarea
                 value={statusChangeReason}
                 onChange={(e) => setStatusChangeReason(e.target.value)}
                 rows={3}
-                placeholder="Enter reason for status change..."
+                placeholder={t('detail.reasonPlaceholder')}
                 className="w-full px-3 py-2 bg-vault-surface border border-vault-border rounded-lg text-vault-text text-sm placeholder:text-vault-muted-text/50 focus:outline-none focus:ring-2 focus:ring-vault-amber/30 focus:border-vault-amber/40 transition-all resize-none"
               />
             </div>
             <div className="flex justify-end gap-3">
               <Button variant="ghost" onClick={() => setShowStatusModal(null)}>
-                Cancel
+                {t('common.cancel')}
               </Button>
               <Button
                 variant={
@@ -599,7 +602,7 @@ export default function AssetDetailPage() {
                   })
                 }
               >
-                Confirm
+                {t('common.confirm')}
               </Button>
             </div>
           </div>

@@ -1,18 +1,38 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { motion, useReducedMotion } from 'framer-motion'
 import {
   ArrowRight, ArrowUpRight, ShieldCheck, ScanLine,
-  ScrollText, BarChart3, Boxes, Check,
+  ScrollText, BarChart3, Boxes, Check, Menu, X,
 } from 'lucide-react'
-import { QRCodeSVG } from 'qrcode.react'
 import { useAuthStore } from '../stores/authStore'
+import {
+  SALES_PHONE, SALES_PHONE_HREF, SALES_TELEGRAM_HANDLE, SALES_TELEGRAM_URL, TRIAL_LENGTH_DAYS,
+} from '../lib/config'
 import { AISuggestDemo, AuditDiffDemo, AnalyticsDemo, QRScanDemo, AIPredictDemo, WarrantyDemo } from '../components/landing/Demos'
 import { Pricing } from '../components/landing/Pricing'
 
 // ── Small helpers ─────────────────────────────────────────────────────────────
 
 const easeOut: [number, number, number, number] = [0.22, 1, 0.36, 1]
+
+// Self-serve signup creates a pending_review org; activation happens in the console.
+const TRIAL_CTA = `Start a ${TRIAL_LENGTH_DAYS}-day trial`
+
+const NAV_LINKS = [
+  { href: '#product', label: 'Product' },
+  { href: '#features', label: 'Features' },
+  { href: '#integrations', label: 'Integrations' },
+  { href: '#pricing', label: 'Pricing' },
+  { href: '#security', label: 'Security' },
+]
+
+const TRIAL_FACTS = [
+  `${TRIAL_LENGTH_DAYS} days of the full product`,
+  'Apply online — we review before activation',
+  'Sign in with the password you choose',
+  'Your own subdomain after upgrade',
+]
 
 function Reveal({ children, delay = 0, className = '' }: {
   children: React.ReactNode; delay?: number; className?: string
@@ -109,7 +129,7 @@ function ProductPreview() {
           <span className="text-ink font-medium">AssetVault</span>
           <span>/</span><span>Dashboard</span>
         </div>
-        <span className="ml-auto text-[11px] text-muted">Tashkent HQ</span>
+        <span className="ml-auto text-[11px] text-muted">Sample data</span>
       </div>
 
       <div className="p-4 sm:p-5">
@@ -234,9 +254,9 @@ function AuditPreview() {
 
 // ── Features ──────────────────────────────────────────────────────────────────
 const FEATURES = [
-  { icon: Boxes, title: 'Enforced asset lifecycle', desc: 'Register → assign → repair → write-off. Every transition is validated server-side and can never skip a step.' },
+  { icon: Boxes, title: 'Enforced asset lifecycle', desc: 'Register → assign → repair → write-off. Every transition is validated server-side, and invalid ones are rejected.' },
   { icon: ScanLine, title: 'QR tracking', desc: 'A scannable code on every asset resolves to its live record, current holder, and full history.' },
-  { icon: ScrollText, title: 'Append-only audit', desc: 'An immutable ledger of who changed what, when, and why — exportable to CSV for any compliance review.' },
+  { icon: ScrollText, title: 'Append-only audit', desc: 'Every change is appended to the log — who, what, when, and why — exportable to CSV for any compliance review.' },
   { icon: BarChart3, title: 'Operational analytics', desc: 'Department allocation, asset age, and repair frequency across every location, updated in real time.' },
   { icon: ShieldCheck, title: 'Role-based access', desc: 'Four roles — Admin, Manager, Viewer, Auditor — each scoped to exactly what they should see and do.' },
   { icon: Check, title: 'Single source of truth', desc: 'One record per asset, one active assignment, zero spreadsheets drifting out of sync across offices.' },
@@ -245,8 +265,9 @@ const FEATURES = [
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
   const { isAuthenticated } = useAuthStore()
-  const navigate = useNavigate()
+  const reduce = useReducedMotion()
   const [scrolled, setScrolled] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 12)
@@ -255,7 +276,12 @@ export default function LandingPage() {
     return () => window.removeEventListener('scroll', fn)
   }, [])
 
-  const ctaTarget = isAuthenticated ? '/dashboard' : '/register'
+  useEffect(() => {
+    if (!menuOpen) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [menuOpen])
 
   const DEMOS = [
     {
@@ -299,28 +325,96 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-paper text-body font-sans antialiased">
       {/* ── Nav ── */}
-      <header className={`fixed top-0 inset-x-0 z-50 transition-colors duration-300 ${scrolled ? 'bg-white/85 backdrop-blur-md border-b border-line' : 'bg-transparent border-b border-transparent'}`}>
+      <header className={`fixed top-0 inset-x-0 z-50 transition-colors duration-300 ${scrolled || menuOpen ? 'bg-white/95 backdrop-blur-md border-b border-line' : 'bg-transparent border-b border-transparent'}`}>
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 text-ink">
             <Mark className="h-5 w-5 text-brand" />
             <span className="text-[15px] font-semibold tracking-tight">AssetVault</span>
           </div>
-          <nav className="hidden sm:flex items-center gap-7 text-[13px] text-body">
-            <a href="#product" className="hover:text-ink transition-colors">Product</a>
-            <a href="#features" className="hover:text-ink transition-colors">Features</a>
-            <a href="#pricing" className="hover:text-ink transition-colors">Pricing</a>
-            <a href="#security" className="hover:text-ink transition-colors">Security</a>
+          <nav aria-label="Primary" className="hidden md:flex items-center gap-7 text-[13px] text-body">
+            {NAV_LINKS.map((l) => (
+              <a key={l.href} href={l.href} className="hover:text-ink transition-colors">{l.label}</a>
+            ))}
           </nav>
-          <div className="flex items-center gap-1.5">
-            <Link to="/login" className="px-3.5 py-2 text-[13px] font-medium text-body hover:text-ink transition-colors">
-              Sign in
-            </Link>
-            <Link to={ctaTarget} className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors">
-              {isAuthenticated ? 'Dashboard' : 'Get started'}
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
+          <div className="hidden md:flex items-center gap-1.5">
+            {isAuthenticated ? (
+              <Link to="/dashboard" className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors">
+                Open dashboard
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            ) : (
+              <>
+                <Link to="/login" className="px-3.5 py-2 text-[13px] font-medium text-body hover:text-ink transition-colors">
+                  Sign in
+                </Link>
+                <Link
+                  to="/signup"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[13px] font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors"
+                >
+                  Request a trial
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
+              </>
+            )}
           </div>
+          <button
+            type="button"
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-expanded={menuOpen}
+            aria-controls="mobile-nav"
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            className="md:hidden -mr-1.5 p-2 rounded-lg text-ink hover:bg-line-soft focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/30 transition-colors"
+          >
+            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
         </div>
+
+        {menuOpen && (
+          <div id="mobile-nav" className="md:hidden border-t border-line bg-white">
+            <nav aria-label="Mobile" className="max-w-6xl mx-auto px-6 py-4 flex flex-col">
+              {NAV_LINKS.map((l) => (
+                <a
+                  key={l.href}
+                  href={l.href}
+                  onClick={() => setMenuOpen(false)}
+                  className="py-2.5 text-[14px] text-body hover:text-ink transition-colors"
+                >
+                  {l.label}
+                </a>
+              ))}
+              <div className="mt-3 pt-4 border-t border-line-soft flex flex-col gap-2">
+                {isAuthenticated ? (
+                  <Link
+                    to="/dashboard"
+                    onClick={() => setMenuOpen(false)}
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-[14px] font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors"
+                  >
+                    Open dashboard
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      to="/signup"
+                      onClick={() => setMenuOpen(false)}
+                      className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-[14px] font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors"
+                    >
+                      {TRIAL_CTA}
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                    <Link
+                      to="/login"
+                      onClick={() => setMenuOpen(false)}
+                      className="inline-flex items-center justify-center px-4 py-2.5 text-[14px] font-medium text-ink bg-white border border-line rounded-lg hover:border-brand/40 transition-colors"
+                    >
+                      Sign in
+                    </Link>
+                  </>
+                )}
+              </div>
+            </nav>
+          </div>
+        )}
       </header>
 
       {/* ── Hero ── */}
@@ -328,7 +422,7 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto grid lg:grid-cols-[1.05fr_1fr] gap-14 items-center">
           <div>
             <motion.div
-              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: easeOut }}
+              initial={reduce ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: easeOut }}
               className="inline-flex items-center gap-2 text-[12px] font-medium text-body mb-6"
             >
               <span className="h-px w-6 bg-gold" />
@@ -336,74 +430,95 @@ export default function LandingPage() {
             </motion.div>
 
             <motion.h1
-              initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: easeOut, delay: 0.05 }}
+              initial={reduce ? false : { opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: easeOut, delay: 0.05 }}
               className="font-serif text-[42px] sm:text-[52px] leading-[1.05] tracking-[-0.02em] text-ink"
             >
               A single system of record for every asset in every location.
             </motion.h1>
 
             <motion.p
-              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: easeOut, delay: 0.14 }}
+              initial={reduce ? false : { opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: easeOut, delay: 0.14 }}
               className="mt-6 text-[16px] leading-relaxed text-body max-w-lg"
             >
               AssetVault tracks your equipment across its whole lifecycle — from purchase to write-off —
-              with QR scanning, role-based access, and a tamper-proof audit trail auditors actually trust.
+              with QR scanning, role-based access, and an append-only audit trail auditors can follow.
             </motion.p>
 
             <motion.div
-              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: easeOut, delay: 0.22 }}
+              initial={reduce ? false : { opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease: easeOut, delay: 0.22 }}
               className="mt-8 flex flex-wrap items-center gap-3"
             >
-              <button
-                onClick={() => navigate(ctaTarget)}
-                className="inline-flex items-center gap-2 px-5 py-3 text-[14px] font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors"
-              >
-                {isAuthenticated ? 'Open dashboard' : 'Get started'}
-                <ArrowRight className="h-4 w-4" />
-              </button>
-              <Link
-                to="/login"
-                className="inline-flex items-center gap-1.5 px-5 py-3 text-[14px] font-medium text-ink bg-white border border-line rounded-lg hover:border-brand/40 transition-colors"
-              >
-                Sign in
-              </Link>
+              {isAuthenticated ? (
+                <>
+                  <Link
+                    to="/dashboard"
+                    className="inline-flex items-center gap-2 px-5 py-3 text-[14px] font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors"
+                  >
+                    Open dashboard
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                  <a
+                    href="#demos"
+                    className="inline-flex items-center gap-1.5 px-5 py-3 text-[14px] font-medium text-ink bg-white border border-line rounded-lg hover:border-brand/40 transition-colors"
+                  >
+                    See it in action
+                  </a>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to="/signup"
+                    className="inline-flex items-center gap-2 px-5 py-3 text-[14px] font-medium text-white bg-brand rounded-lg hover:bg-brand-hover transition-colors"
+                  >
+                    {TRIAL_CTA}
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                  <Link
+                    to="/login"
+                    className="inline-flex items-center gap-1.5 px-5 py-3 text-[14px] font-medium text-ink bg-white border border-line rounded-lg hover:border-brand/40 transition-colors"
+                  >
+                    Sign in
+                  </Link>
+                </>
+              )}
             </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.34 }}
-              className="mt-8 flex items-center gap-3 text-[13px] text-muted"
+            <motion.p
+              initial={reduce ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5, delay: 0.34 }}
+              className="mt-8 text-[13px] text-muted"
             >
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-ok" />
-                Live
-              </span>
-              <span className="text-line">·</span>
-              <span>Tracking <span className="text-body font-medium">300 assets</span> across <span className="text-body font-medium">5 locations</span></span>
-            </motion.div>
+              {TRIAL_LENGTH_DAYS}-day trial after a short review · shared app during the trial ·
+              your own subdomain after upgrade.
+            </motion.p>
           </div>
 
           <motion.div
-            initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: easeOut, delay: 0.15 }}
+            initial={reduce ? false : { opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: easeOut, delay: 0.15 }}
           >
             <ProductPreview />
           </motion.div>
         </div>
       </section>
 
-      {/* ── Metrics band (real numbers) ── */}
+      {/* ── Metrics band (example workspace, not customer figures) ── */}
       <section className="border-y border-line bg-white">
-        <div className="max-w-6xl mx-auto px-6 py-10 grid grid-cols-2 md:grid-cols-4 divide-x divide-line-soft">
-          {[
-            { value: '300', label: 'Assets under management' },
-            { value: '5', label: 'Locations' },
-            { value: '30', label: 'Employees mapped' },
-            { value: '4', label: 'Access roles' },
-          ].map((m, i) => (
-            <div key={m.label} className={`px-5 ${i === 0 ? 'pl-0' : ''}`}>
-              <div className="text-[30px] font-semibold text-ink font-mono tracking-tight">{m.value}</div>
-              <div className="text-[12px] text-muted mt-1 leading-snug">{m.label}</div>
-            </div>
-          ))}
+        <div className="max-w-6xl mx-auto px-6 py-10">
+          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted mb-6">
+            Example workspace — sample data used in the demos below
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-line-soft">
+            {[
+              { value: '300', label: 'Assets in the example workspace' },
+              { value: '5', label: 'Locations' },
+              { value: '30', label: 'Employees mapped' },
+              { value: '4', label: 'Access roles' },
+            ].map((m, i) => (
+              <div key={m.label} className={`px-5 ${i === 0 ? 'pl-0' : ''}`}>
+                <div className="text-[30px] font-semibold text-ink font-mono tracking-tight">{m.value}</div>
+                <div className="text-[12px] text-muted mt-1 leading-snug">{m.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -418,7 +533,7 @@ export default function LandingPage() {
             <p className="text-[15px] leading-relaxed text-body mb-6">
               Across dozens of locations, assets move constantly — assigned, repaired, retired. On spreadsheets that
               history evaporates and accountability with it. AssetVault replaces the guesswork with one enforced
-              workflow and a record that can’t be quietly edited.
+              workflow, where every change is written to the audit log as it happens.
             </p>
             <ul className="space-y-3">
               {[
@@ -497,8 +612,9 @@ export default function LandingPage() {
               Built to survive an audit.
             </h2>
             <p className="text-[15px] leading-relaxed text-body">
-              Sensitive asset data demands more than a login screen. Access is scoped by role, the audit log is
-              physically append-only, and nothing is ever hard-deleted — so the trail is always complete.
+              Sensitive asset data demands more than a login screen. Every request is scoped to the signed-in
+              organization and the user’s role, the app only ever appends to the audit log — it never rewrites or
+              deletes entries — and retired assets are soft-deleted, so their history stays readable.
             </p>
           </Reveal>
           <div className="grid sm:grid-cols-2 gap-4">
@@ -506,7 +622,7 @@ export default function LandingPage() {
               { role: 'ADMIN', desc: 'Full control — users, locations, and every asset.' },
               { role: 'MANAGER', desc: 'Assign, edit, and review analytics for their scope.' },
               { role: 'VIEWER', desc: 'Read-only visibility into assets and dashboards.' },
-              { role: 'AUDITOR', desc: 'Immutable audit log access and CSV export.' },
+              { role: 'AUDITOR', desc: 'Read-only audit log access and CSV export.' },
             ].map((r) => (
               <Reveal key={r.role} className="rounded-xl border border-line bg-white p-5">
                 <div className="font-mono text-[11px] font-semibold tracking-wide text-brand">{r.role}</div>
@@ -517,50 +633,105 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── Coming soon: directory / SSO ── */}
+      <section id="integrations" className="px-6 py-24 border-y border-line bg-white">
+        <div className="max-w-6xl mx-auto grid lg:grid-cols-[1fr_1.1fr] gap-14 items-start">
+          <Reveal>
+            <p className="text-[12px] font-medium uppercase tracking-[0.14em] text-gold mb-4">Coming soon</p>
+            <h2 className="font-serif text-[32px] leading-[1.12] tracking-[-0.02em] text-ink mb-5">
+              Azure AD, when you are ready for it.
+            </h2>
+            <p className="text-[15px] leading-relaxed text-body">
+              Trial and Starter workspaces manage employees and login users in Settings.
+              Enterprise will connect Microsoft Entra ID (Azure AD) so directories and
+              sign-in follow your existing identity stack.
+            </p>
+          </Reveal>
+          <Reveal delay={0.08}>
+            <ul className="space-y-4 pt-2">
+              {[
+                'Single sign-on with Microsoft Entra ID',
+                'Sync employees and departments from your directory',
+                'Map security groups to AssetVault roles',
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-3 text-[14px] text-body">
+                  <span className="mt-0.5 shrink-0 w-[18px] h-[18px] rounded-full bg-gold-soft text-gold flex items-center justify-center">
+                    <Check className="w-3 h-3" />
+                  </span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </Reveal>
+        </div>
+      </section>
+
       {/* ── Pricing ── */}
       <Pricing />
 
-      {/* ── CTA — signature: a real, scannable QR to the live demo ── */}
-      <section className="px-6 pb-24">
+      {/* ── CTA ── */}
+      <section className="px-6 pb-14">
         <div className="max-w-6xl mx-auto rounded-2xl bg-brand overflow-hidden grid md:grid-cols-[1.35fr_1fr]">
-          <div className="px-8 py-14 sm:px-12">
+          <div className="px-8 py-12 sm:px-12">
             <h2 className="font-serif text-[32px] sm:text-[38px] leading-[1.08] tracking-[-0.02em] text-white">
               See where every<br />asset stands.
             </h2>
             <p className="mt-4 text-[15px] text-white/70 max-w-sm">
-              Open the demo with the admin account below — or scan the code to explore the live product on your phone.
+              {isAuthenticated
+                ? 'Your workspace is one click away.'
+                : `Apply for a ${TRIAL_LENGTH_DAYS}-day trial. We’ll review your organization, then you sign in with the password you chose.`}
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <button
-                onClick={() => navigate(ctaTarget)}
-                className="inline-flex items-center gap-2 px-6 py-3 text-[14px] font-medium text-brand bg-white rounded-lg hover:bg-paper transition-colors"
-              >
-                {isAuthenticated ? 'Open dashboard' : 'Get started'}
-                <ArrowUpRight className="h-4 w-4" />
-              </button>
-              <Link
-                to="/login"
-                className="inline-flex items-center gap-1.5 px-6 py-3 text-[14px] font-medium text-white border border-white/25 rounded-lg hover:bg-white/10 transition-colors"
-              >
-                Sign in
-              </Link>
+              {isAuthenticated ? (
+                <Link
+                  to="/dashboard"
+                  className="inline-flex items-center gap-2 px-6 py-3 text-[14px] font-medium text-brand bg-white rounded-lg hover:bg-paper transition-colors"
+                >
+                  Open dashboard
+                  <ArrowUpRight className="h-4 w-4" />
+                </Link>
+              ) : (
+                <>
+                  <Link
+                    to="/signup"
+                    className="inline-flex items-center gap-2 px-6 py-3 text-[14px] font-medium text-brand bg-white rounded-lg hover:bg-paper transition-colors"
+                  >
+                    {TRIAL_CTA}
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                  <Link
+                    to="/login"
+                    className="inline-flex items-center gap-1.5 px-6 py-3 text-[14px] font-medium text-white border border-white/25 rounded-lg hover:bg-white/10 transition-colors"
+                  >
+                    Sign in
+                  </Link>
+                </>
+              )}
             </div>
-            <p className="mt-6 text-[12px] text-white/50 font-mono">
-              admin@assetvault.uz &nbsp;·&nbsp; Vault@2024
+            <p className="mt-6 text-[12.5px] text-white/50">
+              Telegram{' '}
+              <a href={SALES_TELEGRAM_URL} target="_blank" rel="noreferrer" className="text-white/80 hover:text-white transition-colors">
+                {SALES_TELEGRAM_HANDLE}
+              </a>{' '}
+              ·{' '}
+              <a href={SALES_PHONE_HREF} className="text-white/80 hover:text-white transition-colors">{SALES_PHONE}</a>
             </p>
           </div>
 
-          <div className="flex flex-col items-center justify-center gap-4 p-8 border-t md:border-t-0 md:border-l border-white/10 bg-white/[0.03]">
-            <div className="bg-white p-3 rounded-xl shadow-lg">
-              <QRCodeSVG value="https://asset.datamou.uz" size={132} bgColor="#ffffff" fgColor="#17233D" level="M" />
+          <div className="flex flex-col justify-center gap-4 px-8 py-10 sm:px-10 border-t md:border-t-0 md:border-l border-white/10 bg-white/[0.03]">
+            <div className="text-[11px] font-medium uppercase tracking-[0.14em] text-white/50">
+              How the trial works
             </div>
-            <div className="text-center">
-              <div className="inline-flex items-center gap-1.5 text-[13px] font-medium text-white">
-                <ScanLine className="h-3.5 w-3.5 text-white/70" />
-                Scan to open the live demo
-              </div>
-              <div className="text-[11px] text-white/45 font-mono mt-1">asset.datamou.uz</div>
-            </div>
+            <ul className="space-y-3">
+              {TRIAL_FACTS.map((f) => (
+                <li key={f} className="flex items-start gap-2.5 text-[13.5px] text-white/85 leading-snug">
+                  <span className="mt-0.5 shrink-0 w-[18px] h-[18px] rounded-full bg-white/10 flex items-center justify-center">
+                    <Check className="w-3 h-3 text-white" />
+                  </span>
+                  {f}
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </section>
@@ -573,10 +744,11 @@ export default function LandingPage() {
             <span className="text-[13px] font-semibold">AssetVault</span>
           </div>
           <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[12px] text-body">
-            <a href="https://t.me/jasurbeksharofiddinov" target="_blank" rel="noreferrer" className="hover:text-ink transition-colors">Telegram @jasurbeksharofiddinov</a>
-            <a href="tel:+998999948959" className="hover:text-ink transition-colors">+998 99 994 89 59</a>
+            <a href={SALES_TELEGRAM_URL} target="_blank" rel="noreferrer" className="hover:text-ink transition-colors">
+              Telegram {SALES_TELEGRAM_HANDLE}
+            </a>
+            <a href={SALES_PHONE_HREF} className="hover:text-ink transition-colors">{SALES_PHONE}</a>
             <Link to="/login" className="hover:text-ink transition-colors">Sign in</Link>
-            <Link to="/register" className="hover:text-ink transition-colors">Register</Link>
           </div>
         </div>
       </footer>
