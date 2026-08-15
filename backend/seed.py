@@ -12,14 +12,14 @@ from decimal import Decimal
 from faker import Faker
 from passlib.context import CryptContext
 from sqlalchemy import create_engine, Column, String, Boolean, DateTime, Date, Numeric
-from sqlalchemy import Text, BigInteger, ForeignKey, JSON, func
+from sqlalchemy import Text, BigInteger, ForeignKey, JSON, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 # ── Configuration ────────────────────────────────────────────────────────────
 
 import os
-DATABASE_URL = os.environ.get("SYNC_DATABASE_URL", "postgresql://postgres:12345@localhost:5432/assetvault")
+DATABASE_URL = os.environ.get("SYNC_DATABASE_URL", "postgresql://postgres:postgres@db:5432/assetvault")
 
 engine = create_engine(DATABASE_URL, echo=False)
 SessionLocal = sessionmaker(bind=engine)
@@ -31,14 +31,60 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 # ── Sync ORM Models (mirrors async models) ──────────────────────────────────
 
 
+class Organization(Base):
+    __tablename__ = "organizations"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(255), nullable=False)
+    slug = Column(String(100), unique=True, nullable=False)
+    status = Column(String(20), nullable=False, default="active")
+    plan = Column(String(20), nullable=False, default="starter")
+    trial_ends_at = Column(DateTime(timezone=True), nullable=True)
+    grace_ends_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
+    deleted_at = Column(DateTime(timezone=True), nullable=True)
+    contact_email = Column(String(255), nullable=True)
+    contact_phone = Column(String(50), nullable=True)
+    website = Column(String(255), nullable=True)
+    country = Column(String(100), nullable=True)
+    institution_type = Column(String(100), nullable=True)
+    use_case = Column(Text, nullable=True)
+    signup_ip = Column(String(45), nullable=True)
+    signup_user_agent = Column(String(512), nullable=True)
+    rejection_reason = Column(Text, nullable=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    reviewed_by = Column(UUID(as_uuid=True), nullable=True)
+    notes = Column(Text, nullable=True)
+
+
+class PlatformAdmin(Base):
+    __tablename__ = "platform_admins"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    email = Column(String(255), unique=True, nullable=False)
+    full_name = Column(String(255), nullable=False)
+    hashed_password = Column(String(512), nullable=False)
+    is_active = Column(Boolean, default=True, nullable=False)
+    mfa_secret = Column(String(255), nullable=True)
+    last_login = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+# Deterministic default org — must match app.models.organization
+DEFAULT_ORGANIZATION_ID = uuid.UUID("a0000000-0000-4000-8000-000000000001")
+DEFAULT_ORGANIZATION_SLUG = "default"
+
+
 class User(Base):
     __tablename__ = "users"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False)
     full_name = Column(String(255), nullable=False)
-    email = Column(String(255), unique=True, nullable=False)
+    email = Column(String(255), nullable=False)
     hashed_password = Column(String(512), nullable=False)
     role = Column(String(20), nullable=False, default="VIEWER")
     is_active = Column(Boolean, default=True)
+    must_change_password = Column(Boolean, default=False, nullable=False)
     last_login = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -47,12 +93,19 @@ class User(Base):
 class Department(Base):
     __tablename__ = "departments"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String(100), unique=True, nullable=False)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False)
+    name = Column(String(100), nullable=False)
 
 
 class Branch(Base):
     __tablename__ = "branches"
+    __table_args__ = (
+        UniqueConstraint(
+            "organization_id", "name", name="uq_branches_organization_id_name"
+        ),
+    )
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False)
     name = Column(String(255), nullable=False)
     location = Column(String(255), nullable=True)
 
@@ -60,8 +113,9 @@ class Branch(Base):
 class Employee(Base):
     __tablename__ = "employees"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False)
     full_name = Column(String(255), nullable=False)
-    email = Column(String(255), unique=True, nullable=False)
+    email = Column(String(255), nullable=False)
     department_id = Column(UUID(as_uuid=True), ForeignKey("departments.id"), nullable=True)
     branch_id = Column(UUID(as_uuid=True), ForeignKey("branches.id"), nullable=True)
     position = Column(String(100), nullable=True)
@@ -70,10 +124,11 @@ class Employee(Base):
 class Asset(Base):
     __tablename__ = "assets"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False)
     name = Column(String(255), nullable=False)
     asset_type = Column(String(100), nullable=False)
     category = Column(String(20), nullable=False, default="OTHER")
-    serial_number = Column(String(255), unique=True, nullable=False)
+    serial_number = Column(String(255), nullable=False)
     brand = Column(String(100), nullable=True)
     model = Column(String(100), nullable=True)
     purchase_date = Column(Date, nullable=True)
@@ -92,6 +147,7 @@ class Asset(Base):
 class Assignment(Base):
     __tablename__ = "assignments"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False)
     asset_id = Column(UUID(as_uuid=True), ForeignKey("assets.id"), nullable=False)
     employee_id = Column(UUID(as_uuid=True), ForeignKey("employees.id"), nullable=True)
     department_id = Column(UUID(as_uuid=True), ForeignKey("departments.id"), nullable=True)
@@ -107,6 +163,7 @@ class Assignment(Base):
 class AuditLog(Base):
     __tablename__ = "audit_logs"
     id = Column(BigInteger, primary_key=True, autoincrement=True)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False)
     entity_type = Column(String(50), nullable=False)
     entity_id = Column(UUID(as_uuid=True), nullable=False)
     action = Column(String(50), nullable=False)
@@ -246,56 +303,148 @@ def generate_serial() -> str:
     return f"{prefix}-{random.randint(100000, 999999)}-{random.randint(10, 99)}"
 
 
-def seed():
-    # Create tables
-    Base.metadata.create_all(engine)
+def bootstrap_platform_admin(session) -> None:
+    """Idempotent env-gated bootstrap of the first platform operator.
 
+    Requires both PLATFORM_ADMIN_EMAIL and PLATFORM_ADMIN_PASSWORD when either
+    is set. Never uses a hardcoded password. Skips silently when both unset.
+    """
+    email = (os.environ.get("PLATFORM_ADMIN_EMAIL") or "").strip().lower()
+    password = os.environ.get("PLATFORM_ADMIN_PASSWORD")
+    full_name = (os.environ.get("PLATFORM_ADMIN_FULL_NAME") or "Platform Admin").strip()
+
+    if not email and not password:
+        print("Skipping platform admin bootstrap (PLATFORM_ADMIN_EMAIL/PASSWORD unset).")
+        return
+
+    if not email or not password:
+        raise SystemExit(
+            "Both PLATFORM_ADMIN_EMAIL and PLATFORM_ADMIN_PASSWORD are required "
+            "to bootstrap a platform admin. Set both, or leave both unset to skip.\n"
+            "  $env:PLATFORM_ADMIN_EMAIL='ops@assetvault.uz'\n"
+            "  $env:PLATFORM_ADMIN_PASSWORD='YourSecurePass1'"
+        )
+
+    existing = session.query(PlatformAdmin).filter_by(email=email).first()
+    if existing:
+        print(f"Platform admin already exists ({email}). Skipping bootstrap.")
+        return
+
+    admin = PlatformAdmin(
+        id=uuid.uuid4(),
+        email=email,
+        full_name=full_name or "Platform Admin",
+        hashed_password=pwd_context.hash(password),
+        is_active=True,
+    )
+    session.add(admin)
+    session.commit()
+    print(f"Bootstrapped platform admin: {email} (password not printed)")
+
+
+SEED_USERS = (
+    ("admin@assetvault.uz", "Admin User", "ADMIN"),
+    ("manager@assetvault.uz", "Manager User", "MANAGER"),
+    ("auditor@assetvault.uz", "Auditor User", "AUDITOR"),
+)
+
+
+def upsert_seed_users(session, org_id, seed_password: str):
+    """Create or reset the three default-org seed accounts.
+
+    Always reapplies ``seed_password``. Other users in the org are left alone.
+    """
+    hashed_pw = pwd_context.hash(seed_password)
+    users = []
+    created = 0
+    updated = 0
+    for email, full_name, role in SEED_USERS:
+        user = (
+            session.query(User)
+            .filter_by(organization_id=org_id, email=email)
+            .first()
+        )
+        if user:
+            user.hashed_password = hashed_pw
+            user.full_name = full_name
+            user.role = role
+            user.is_active = True
+            user.must_change_password = False
+            updated += 1
+        else:
+            user = User(
+                id=uuid.uuid4(),
+                organization_id=org_id,
+                full_name=full_name,
+                email=email,
+                hashed_password=hashed_pw,
+                role=role,
+                is_active=True,
+                must_change_password=False,
+            )
+            session.add(user)
+            created += 1
+        users.append(user)
+    session.flush()
+    print(f"  Seed users upserted (created={created}, password reset={updated})")
+    return users
+
+
+def seed():
+    # Schema is managed by Alembic (alembic upgrade head). Do not create_all here.
     session = SessionLocal()
 
     try:
-        # Check if already seeded
-        existing_users = session.query(User).count()
-        if existing_users > 0:
-            print("Database already seeded. Skipping.")
-            return
-
         print("Seeding database...")
 
-        # ── Users ────────────────────────────────────────────────────────
-        hashed_pw = pwd_context.hash("Vault@2024")
-        admin = User(
-            id=uuid.uuid4(),
-            full_name="Admin User",
-            email="admin@assetvault.uz",
-            hashed_password=hashed_pw,
-            role="ADMIN",
-            is_active=True,
-        )
-        manager = User(
-            id=uuid.uuid4(),
-            full_name="Manager User",
-            email="manager@assetvault.uz",
-            hashed_password=hashed_pw,
-            role="MANAGER",
-            is_active=True,
-        )
-        auditor = User(
-            id=uuid.uuid4(),
-            full_name="Auditor User",
-            email="auditor@assetvault.uz",
-            hashed_password=hashed_pw,
-            role="AUDITOR",
-            is_active=True,
-        )
-        users = [admin, manager, auditor]
-        session.add_all(users)
-        session.flush()
-        print(f"  Created {len(users)} users")
+        # ── Organization ────────────────────────────────────────────────
+        org = session.query(Organization).filter_by(slug=DEFAULT_ORGANIZATION_SLUG).first()
+        if not org:
+            org = Organization(
+                id=DEFAULT_ORGANIZATION_ID,
+                name="Default Organization",
+                slug=DEFAULT_ORGANIZATION_SLUG,
+                status="active",
+                plan="business",
+            )
+            session.add(org)
+            session.flush()
+        org_id = org.id
+        print(f"  Using organization {org.slug} ({org_id})")
 
-        # ── Branches ─────────────────────────────────────────────────────
+        seed_password = os.environ.get("SEED_PASSWORD")
+        if not seed_password:
+            raise SystemExit(
+                "SEED_PASSWORD environment variable is required to create seed users. "
+                "Set it before running seed.py, e.g.:\n"
+                "  $env:SEED_PASSWORD='YourSecurePass1'   # PowerShell\n"
+                "  export SEED_PASSWORD='YourSecurePass1' # bash"
+            )
+
+        admin, manager, auditor = upsert_seed_users(session, org_id, seed_password)
+        users = [admin, manager, auditor]
+        actor_users = [admin, manager]
+
+        existing_assets = session.query(Asset).filter_by(organization_id=org_id).count()
+        if existing_assets > 0:
+            session.commit()
+            print("Demo data already present. Skipping bulk branches/assets.")
+            print("\nSeeded login emails (password from SEED_PASSWORD env var — not printed):")
+            print("  admin@assetvault.uz   (ADMIN)")
+            print("  manager@assetvault.uz (MANAGER)")
+            print("  auditor@assetvault.uz (AUDITOR)")
+            bootstrap_platform_admin(session)
+            return
+
+        print("  Creating demo reference data and assets...")
         branches = []
         for name, location in BRANCHES:
-            branch = Branch(id=uuid.uuid4(), name=name, location=location)
+            branch = Branch(
+                id=uuid.uuid4(),
+                organization_id=org_id,
+                name=name,
+                location=location,
+            )
             branches.append(branch)
         session.add_all(branches)
         session.flush()
@@ -304,7 +453,7 @@ def seed():
         # ── Departments ──────────────────────────────────────────────────
         departments = []
         for name in DEPARTMENTS:
-            dept = Department(id=uuid.uuid4(), name=name)
+            dept = Department(id=uuid.uuid4(), organization_id=org_id, name=name)
             departments.append(dept)
         session.add_all(departments)
         session.flush()
@@ -321,6 +470,7 @@ def seed():
                     break
             emp = Employee(
                 id=uuid.uuid4(),
+                organization_id=org_id,
                 full_name=fake.name(),
                 email=email,
                 department_id=random.choice(departments).id,
@@ -359,6 +509,7 @@ def seed():
 
             asset = Asset(
                 id=uuid.uuid4(),
+                organization_id=org_id,
                 name=f"{name_base} #{i+1}",
                 asset_type=asset_type,
                 category=category,
@@ -395,6 +546,7 @@ def seed():
 
             assignment = Assignment(
                 id=uuid.uuid4(),
+                organization_id=org_id,
                 asset_id=asset.id,
                 employee_id=emp.id,
                 department_id=emp.department_id,
@@ -415,6 +567,7 @@ def seed():
 
                 assignment = Assignment(
                     id=uuid.uuid4(),
+                    organization_id=org_id,
                     asset_id=asset.id,
                     employee_id=emp.id,
                     department_id=emp.department_id,
@@ -440,6 +593,7 @@ def seed():
 
             # CREATE log
             audit_logs.append(AuditLog(
+                organization_id=org_id,
                 entity_type="asset",
                 entity_id=asset.id,
                 action="CREATE",
@@ -463,6 +617,7 @@ def seed():
                     occurred = asset.created_at + timedelta(days=random.randint(1, 200))
                     actor = random.choice(actor_users)
                     audit_logs.append(AuditLog(
+                        organization_id=org_id,
                         entity_type="asset",
                         entity_id=asset.id,
                         action="STATUS_CHANGE",
@@ -479,6 +634,7 @@ def seed():
         for assignment in assignments:
             actor = random.choice(actor_users)
             audit_logs.append(AuditLog(
+                organization_id=org_id,
                 entity_type="asset",
                 entity_id=assignment.asset_id,
                 action="ASSIGN",
@@ -491,6 +647,7 @@ def seed():
 
             if assignment.returned_at:
                 audit_logs.append(AuditLog(
+                    organization_id=org_id,
                     entity_type="asset",
                     entity_id=assignment.asset_id,
                     action="RETURN",
@@ -507,6 +664,7 @@ def seed():
             actor = random.choice(actor_users)
             occurred = asset.created_at + timedelta(days=random.randint(1, 100))
             audit_logs.append(AuditLog(
+                organization_id=org_id,
                 entity_type="asset",
                 entity_id=asset.id,
                 action="UPDATE",
@@ -531,10 +689,12 @@ def seed():
         print(f"  Total assets:      {len(assets)}")
         print(f"  Total assignments: {len(assignments)}")
         print(f"  Total audit logs:  {len(audit_logs)}")
-        print("\nLogin credentials:")
-        print("  admin@assetvault.uz   / Vault@2024  (ADMIN)")
-        print("  manager@assetvault.uz / Vault@2024  (MANAGER)")
-        print("  auditor@assetvault.uz / Vault@2024  (AUDITOR)")
+        print("\nSeeded login emails (password from SEED_PASSWORD env var — not printed):")
+        print("  admin@assetvault.uz   (ADMIN)")
+        print("  manager@assetvault.uz (MANAGER)")
+        print("  auditor@assetvault.uz (AUDITOR)")
+
+        bootstrap_platform_admin(session)
 
     except Exception as e:
         session.rollback()

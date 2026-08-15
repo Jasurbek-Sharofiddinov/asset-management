@@ -2,10 +2,10 @@ import uuid
 from datetime import datetime, timezone
 from typing import List
 
-from sqlalchemy import select, and_
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.asset import Asset, AssetStatus
+from app.models.asset import AssetStatus
 from app.models.assignment import Assignment, Employee, Department, Branch
 from app.schemas.assignment import AssignRequest, AssignmentResponse
 from app.services.asset_service import validate_transition, get_asset_raw
@@ -21,13 +21,15 @@ async def assign_asset(
     asset_id: uuid.UUID,
     data: AssignRequest,
     assigned_by: uuid.UUID,
+    organization_id: uuid.UUID,
 ) -> Assignment:
-    asset = await get_asset_raw(db, asset_id)
+    asset = await get_asset_raw(db, asset_id, organization_id)
 
     # Check no active assignment exists
     existing = await db.execute(
         select(Assignment).where(
             Assignment.asset_id == asset_id,
+            Assignment.organization_id == organization_id,
             Assignment.is_active == True,
         )
     )
@@ -40,23 +42,32 @@ async def assign_asset(
     if not data.employee_id and not data.department_id:
         raise BadRequestException("Either employee_id or department_id must be provided")
 
-    # Validate references exist
+    # Validate references exist within the same organization
     if data.employee_id:
         emp_result = await db.execute(
-            select(Employee).where(Employee.id == data.employee_id)
+            select(Employee).where(
+                Employee.id == data.employee_id,
+                Employee.organization_id == organization_id,
+            )
         )
         if not emp_result.scalar_one_or_none():
             raise NotFoundException(f"Employee with id '{data.employee_id}' not found")
 
     if data.department_id:
         dept_result = await db.execute(
-            select(Department).where(Department.id == data.department_id)
+            select(Department).where(
+                Department.id == data.department_id,
+                Department.organization_id == organization_id,
+            )
         )
         if not dept_result.scalar_one_or_none():
             raise NotFoundException(f"Department with id '{data.department_id}' not found")
 
     branch_result = await db.execute(
-        select(Branch).where(Branch.id == data.branch_id)
+        select(Branch).where(
+            Branch.id == data.branch_id,
+            Branch.organization_id == organization_id,
+        )
     )
     if not branch_result.scalar_one_or_none():
         raise NotFoundException(f"Branch with id '{data.branch_id}' not found")
@@ -65,6 +76,7 @@ async def assign_asset(
     validate_transition(asset.status, AssetStatus.ASSIGNED.value)
 
     assignment = Assignment(
+        organization_id=organization_id,
         asset_id=asset_id,
         employee_id=data.employee_id,
         department_id=data.department_id,
@@ -84,13 +96,15 @@ async def assign_asset(
 async def return_asset(
     db: AsyncSession,
     asset_id: uuid.UUID,
+    organization_id: uuid.UUID,
     return_reason: str | None = None,
 ) -> Assignment:
-    asset = await get_asset_raw(db, asset_id)
+    asset = await get_asset_raw(db, asset_id, organization_id)
 
     result = await db.execute(
         select(Assignment).where(
             Assignment.asset_id == asset_id,
+            Assignment.organization_id == organization_id,
             Assignment.is_active == True,
         )
     )
@@ -113,13 +127,17 @@ async def return_asset(
 async def get_asset_assignments(
     db: AsyncSession,
     asset_id: uuid.UUID,
+    organization_id: uuid.UUID,
 ) -> List[AssignmentResponse]:
-    # Ensure asset exists
-    await get_asset_raw(db, asset_id)
+    # Ensure asset exists in this organization
+    await get_asset_raw(db, asset_id, organization_id)
 
     result = await db.execute(
         select(Assignment)
-        .where(Assignment.asset_id == asset_id)
+        .where(
+            Assignment.asset_id == asset_id,
+            Assignment.organization_id == organization_id,
+        )
         .order_by(Assignment.assigned_at.desc())
     )
     assignments = result.scalars().all()

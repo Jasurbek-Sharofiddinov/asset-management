@@ -1,9 +1,9 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, String, DateTime, Text, JSON, func
+from sqlalchemy import BigInteger, String, DateTime, Text, JSON, ForeignKey, func
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
@@ -12,6 +12,12 @@ class AuditLog(Base):
     __tablename__ = "audit_logs"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id"),
+        nullable=False,
+        index=True,
+    )
     entity_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
     entity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
     action: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
@@ -24,6 +30,8 @@ class AuditLog(Base):
     occurred_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False, index=True
     )
+
+    organization = relationship("Organization", lazy="selectin")
 
     def __repr__(self) -> str:
         return f"<AuditLog {self.entity_type}:{self.action} by {self.actor_name}>"

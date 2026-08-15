@@ -5,38 +5,53 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
-from app.database import engine, Base
+from app.database import engine
 from app.exceptions import (
     NotFoundException,
     ConflictException,
     ForbiddenException,
     UnauthorizedException,
     BadRequestException,
+    TooManyRequestsException,
     InvalidTransitionException,
 )
-from app.routers import auth, assets, assignments, audit, analytics, reference, ai
+from app.routers import (
+    auth,
+    assets,
+    assignments,
+    audit,
+    analytics,
+    reference,
+    ai,
+    platform_auth,
+    platform_organizations,
+)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create tables on startup (dev convenience)
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # Schema is managed solely by Alembic migrations (see backend/entrypoint.sh).
+    # Do not call Base.metadata.create_all here — it drifts from migration history.
     yield
     await engine.dispose()
 
+
+_docs_enabled = not settings.is_production
 
 app = FastAPI(
     title="AssetVault API",
     description="Bank Office Asset Management Platform",
     version="1.0.0",
     lifespan=lifespan,
+    docs_url="/docs" if _docs_enabled else None,
+    redoc_url="/redoc" if _docs_enabled else None,
+    openapi_url="/openapi.json" if _docs_enabled else None,
 )
 
-# CORS
+# CORS — origins from CORS_ORIGINS plus https://{app,platform,apex} for BASE_DOMAIN / LEGACY_BASE_DOMAIN
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=settings.get_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -50,6 +65,9 @@ app.include_router(audit.router)
 app.include_router(analytics.router)
 app.include_router(reference.router)
 app.include_router(ai.router)
+app.include_router(platform_auth.router)
+app.include_router(platform_organizations.router)
+app.include_router(platform_organizations.ops_router)
 
 
 # ── Exception Handlers ───────────────────────────────────────────────────────
@@ -71,6 +89,15 @@ async def forbidden_handler(request: Request, exc: ForbiddenException):
 
 @app.exception_handler(UnauthorizedException)
 async def unauthorized_handler(request: Request, exc: UnauthorizedException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers=exc.headers or {},
+    )
+
+
+@app.exception_handler(TooManyRequestsException)
+async def too_many_requests_handler(request: Request, exc: TooManyRequestsException):
     return JSONResponse(
         status_code=exc.status_code,
         content={"detail": exc.detail},

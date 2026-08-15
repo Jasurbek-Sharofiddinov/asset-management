@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies import get_db, get_current_user, require_role
+from app.dependencies import get_db, require_role
 from app.models.user import User, UserRole
 from app.schemas.audit import AuditListResponse
 from app.services import audit_service
@@ -25,10 +25,13 @@ async def list_audit_logs(
     date_from: Optional[date] = Query(None),
     date_to: Optional[date] = Query(None),
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(
+        require_role(UserRole.AUDITOR.value, UserRole.ADMIN.value)
+    ),
 ):
     return await audit_service.get_audit_logs(
         db,
+        organization_id=current_user.organization_id,
         page=page,
         size=size,
         entity_type=entity_type,
@@ -53,6 +56,7 @@ async def export_audit_logs(
 ):
     csv_content = await audit_service.export_audit_csv(
         db,
+        organization_id=current_user.organization_id,
         entity_type=entity_type,
         action=action,
         date_from=date_from,

@@ -3,7 +3,7 @@ import enum
 from datetime import datetime, date
 from decimal import Decimal
 
-from sqlalchemy import String, Date, DateTime, Numeric, Text, ForeignKey, func
+from sqlalchemy import String, Date, DateTime, Numeric, Text, ForeignKey, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -32,18 +32,27 @@ class AssetStatus(str, enum.Enum):
 
 class Asset(Base):
     __tablename__ = "assets"
+    __table_args__ = (
+        UniqueConstraint(
+            "organization_id", "serial_number", name="uq_assets_organization_id_serial_number"
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    organization_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("organizations.id"),
+        nullable=False,
+        index=True,
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     asset_type: Mapped[str] = mapped_column(String(100), nullable=False)
     category: Mapped[str] = mapped_column(
         String(20), nullable=False, default=AssetCategory.OTHER.value, index=True
     )
-    serial_number: Mapped[str] = mapped_column(
-        String(255), unique=True, nullable=False, index=True
-    )
+    serial_number: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     brand: Mapped[str | None] = mapped_column(String(100), nullable=True)
     model: Mapped[str | None] = mapped_column(String(100), nullable=True)
     purchase_date: Mapped[date | None] = mapped_column(Date, nullable=True)
@@ -69,6 +78,7 @@ class Asset(Base):
     )
 
     # Relationships
+    organization = relationship("Organization", lazy="selectin")
     creator = relationship("User", foreign_keys=[created_by], lazy="selectin")
     assignments = relationship(
         "Assignment", back_populates="asset", lazy="selectin",

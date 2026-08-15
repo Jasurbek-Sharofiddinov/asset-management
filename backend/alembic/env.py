@@ -1,4 +1,6 @@
 import asyncio
+import importlib
+import pkgutil
 from logging.config import fileConfig
 
 from sqlalchemy import pool
@@ -7,11 +9,29 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
-# Import models so metadata is populated
+from app.config import settings
 from app.database import Base
-from app.models import User, Asset, Assignment, Employee, Department, Branch, AuditLog
+
+
+def _import_all_models() -> None:
+    """Import every module under app.models so all tables register on Base.metadata.
+
+    Iterating the package is failure-proof: a new model file is picked up even if
+    someone forgets to re-export it from app.models.__init__.
+    """
+    import app.models as models_pkg
+
+    for module_info in pkgutil.iter_modules(models_pkg.__path__, models_pkg.__name__ + "."):
+        importlib.import_module(module_info.name)
+
+
+_import_all_models()
 
 config = context.config
+
+# Prefer application settings over any stale literal in alembic.ini.
+# Percent signs must be escaped for ConfigParser interpolation.
+config.set_main_option("sqlalchemy.url", settings.DATABASE_URL.replace("%", "%%"))
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
@@ -27,6 +47,8 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        compare_type=True,
+        compare_server_default=True,
     )
 
     with context.begin_transaction():
@@ -34,7 +56,12 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata)
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        compare_type=True,
+        compare_server_default=True,
+    )
 
     with context.begin_transaction():
         context.run_migrations()

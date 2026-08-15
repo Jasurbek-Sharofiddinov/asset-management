@@ -3,16 +3,20 @@ from typing import Optional
 import uuid
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select, func, case, and_, extract
+from sqlalchemy import select, func, case, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.dependencies import get_db, get_current_user
 from app.models.user import User
-from app.models.asset import Asset, AssetStatus, AssetCategory
-from app.models.assignment import Assignment, Department, Branch
+from app.models.asset import Asset
+from app.models.assignment import Assignment, Department
 from app.models.audit import AuditLog
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
+
+
+def _org_asset_filter(organization_id: uuid.UUID):
+    return and_(Asset.deleted_at.is_(None), Asset.organization_id == organization_id)
 
 
 @router.get("/overview")
@@ -21,14 +25,15 @@ async def get_overview(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    base_filter = Asset.deleted_at.is_(None)
+    org_id = current_user.organization_id
+    base_filter = _org_asset_filter(org_id)
 
     if branch_id:
-        # When filtering by branch, join through assignments
         branch_asset_ids = (
             select(Assignment.asset_id)
             .where(
                 and_(
+                    Assignment.organization_id == org_id,
                     Assignment.branch_id == branch_id,
                     Assignment.is_active == True,
                 )
@@ -39,13 +44,11 @@ async def get_overview(
     else:
         branch_filter = base_filter
 
-    # Total count
     total_result = await db.execute(
         select(func.count(Asset.id)).where(branch_filter)
     )
     total = total_result.scalar() or 0
 
-    # By status
     status_result = await db.execute(
         select(Asset.status, func.count(Asset.id))
         .where(branch_filter)
@@ -53,7 +56,6 @@ async def get_overview(
     )
     by_status = {row[0]: row[1] for row in status_result.all()}
 
-    # By category
     category_result = await db.execute(
         select(Asset.category, func.count(Asset.id))
         .where(branch_filter)
@@ -61,7 +63,6 @@ async def get_overview(
     )
     by_category = {row[0]: row[1] for row in category_result.all()}
 
-    # Total value
     value_result = await db.execute(
         select(func.sum(Asset.purchase_price)).where(branch_filter)
     )
@@ -81,6 +82,7 @@ async def get_value_over_time(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    org_id = current_user.organization_id
     now = datetime.now(timezone.utc)
     data = []
 
@@ -89,6 +91,7 @@ async def get_value_over_time(
         result = await db.execute(
             select(func.sum(Asset.purchase_price)).where(
                 and_(
+                    Asset.organization_id == org_id,
                     Asset.deleted_at.is_(None),
                     Asset.created_at <= target_date,
                 )
@@ -109,9 +112,8 @@ async def get_status_over_time(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Returns status distribution snapshots approximated from audit logs."""
-    # Current snapshot approach
-    base_filter = Asset.deleted_at.is_(None)
+    """Returns status distribution snapshots approximated from asset creation months."""
+    base_filter = _org_asset_filter(current_user.organization_id)
     result = await db.execute(
         select(
             func.date_trunc("month", Asset.created_at).label("month"),
@@ -140,9 +142,13 @@ async def get_department_allocation(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    org_id = current_user.organization_id
     filters = [
+        Assignment.organization_id == org_id,
+        Department.organization_id == org_id,
         Assignment.is_active == True,
         Asset.deleted_at.is_(None),
+        Asset.organization_id == org_id,
     ]
     if branch_id:
         filters.append(Assignment.branch_id == branch_id)
@@ -188,7 +194,7 @@ async def get_age_distribution(
             ).label("age_group"),
             func.count(Asset.id),
         )
-        .where(Asset.deleted_at.is_(None))
+        .where(_org_asset_filter(current_user.organization_id))
         .group_by("age_group")
     )
     rows = result.all()
@@ -201,6 +207,7 @@ async def get_repair_frequency(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    org_id = current_user.organization_id
     result = await db.execute(
         select(
             Asset.name,
@@ -214,10 +221,12 @@ async def get_repair_frequency(
                 AuditLog.entity_id == Asset.id,
                 AuditLog.entity_type == "asset",
                 AuditLog.action == "STATUS_CHANGE",
+                AuditLog.organization_id == org_id,
             ),
         )
         .where(
             and_(
+                Asset.organization_id == org_id,
                 Asset.deleted_at.is_(None),
                 AuditLog.new_value.isnot(None),
             )
@@ -252,6 +261,7 @@ async def get_warranty_expiring(
         select(Asset)
         .where(
             and_(
+                Asset.organization_id == current_user.organization_id,
                 Asset.deleted_at.is_(None),
                 Asset.warranty_expiry.isnot(None),
                 Asset.warranty_expiry >= today,

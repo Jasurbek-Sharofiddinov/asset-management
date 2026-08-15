@@ -1,9 +1,9 @@
 import uuid
 import math
 from datetime import datetime, date, timezone
-from typing import Optional, Tuple, List
+from typing import Optional, Sequence
 
-from sqlalchemy import select, func, and_, or_
+from sqlalchemy import select, func, and_, or_, asc, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset import Asset, AssetStatus
@@ -12,7 +12,6 @@ from app.exceptions import (
     NotFoundException,
     ConflictException,
     InvalidTransitionException,
-    BadRequestException,
 )
 from app.schemas.asset import (
     AssetCreate,
@@ -22,6 +21,16 @@ from app.schemas.asset import (
     AssetListResponse,
     AssignmentBrief,
 )
+
+SORTABLE_COLUMNS = {
+    "name": Asset.name,
+    "serial_number": Asset.serial_number,
+    "status": Asset.status,
+    "category": Asset.category,
+    "purchase_date": Asset.purchase_date,
+    "purchase_price": Asset.purchase_price,
+    "created_at": Asset.created_at,
+}
 
 ALLOWED_TRANSITIONS: dict[str, set[str]] = {
     AssetStatus.REGISTERED.value: {
@@ -52,18 +61,39 @@ def validate_transition(current_status: str, target_status: str) -> None:
         raise InvalidTransitionException(current_status, target_status)
 
 
+def _normalize_list(value: str | Sequence[str] | None) -> list[str] | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        items = [value] if value else []
+    else:
+        items = [v for v in value if v]
+    return items or None
+
+
+def _sort_clause(sort_by: str | None, sort_order: str | None):
+    column = SORTABLE_COLUMNS.get((sort_by or "").strip(), Asset.created_at)
+    descending = (sort_order or "desc").strip().lower() != "asc"
+    return desc(column) if descending else asc(column)
+
+
 async def create_asset(
     db: AsyncSession,
     data: AssetCreate,
     created_by: uuid.UUID,
+    organization_id: uuid.UUID,
 ) -> Asset:
     existing = await db.execute(
-        select(Asset).where(Asset.serial_number == data.serial_number)
+        select(Asset).where(
+            Asset.organization_id == organization_id,
+            Asset.serial_number == data.serial_number,
+        )
     )
     if existing.scalar_one_or_none():
         raise ConflictException(f"Asset with serial number '{data.serial_number}' already exists")
 
     asset = Asset(
+        organization_id=organization_id,
         name=data.name,
         asset_type=data.asset_type,
         category=data.category,
@@ -86,24 +116,35 @@ async def create_asset(
 
 async def get_assets(
     db: AsyncSession,
+    organization_id: uuid.UUID,
     page: int = 1,
     size: int = 20,
-    status: Optional[str] = None,
-    category: Optional[str] = None,
+    status: str | Sequence[str] | None = None,
+    category: str | Sequence[str] | None = None,
     department_id: Optional[uuid.UUID] = None,
     branch_id: Optional[uuid.UUID] = None,
     search: Optional[str] = None,
     date_from: Optional[date] = None,
     date_to: Optional[date] = None,
+    sort_by: Optional[str] = None,
+    sort_order: Optional[str] = None,
 ) -> AssetListResponse:
-    base_query = select(Asset).where(Asset.deleted_at.is_(None))
-    count_query = select(func.count(Asset.id)).where(Asset.deleted_at.is_(None))
+    base_query = select(Asset).where(
+        Asset.deleted_at.is_(None),
+        Asset.organization_id == organization_id,
+    )
+    count_query = select(func.count(Asset.id)).where(
+        Asset.deleted_at.is_(None),
+        Asset.organization_id == organization_id,
+    )
 
     filters = []
-    if status:
-        filters.append(Asset.status == status)
-    if category:
-        filters.append(Asset.category == category)
+    statuses = _normalize_list(status)
+    if statuses:
+        filters.append(Asset.status.in_(statuses))
+    categories = _normalize_list(category)
+    if categories:
+        filters.append(Asset.category.in_(categories))
     if search:
         search_pattern = f"%{search}%"
         filters.append(
@@ -125,6 +166,7 @@ async def get_assets(
             select(Assignment.asset_id)
             .where(
                 and_(
+                    Assignment.organization_id == organization_id,
                     Assignment.department_id == department_id,
                     Assignment.is_active == True,
                 )
@@ -138,6 +180,7 @@ async def get_assets(
             select(Assignment.asset_id)
             .where(
                 and_(
+                    Assignment.organization_id == organization_id,
                     Assignment.branch_id == branch_id,
                     Assignment.is_active == True,
                 )
@@ -158,7 +201,7 @@ async def get_assets(
     offset = (page - 1) * size
 
     result = await db.execute(
-        base_query.order_by(Asset.created_at.desc()).offset(offset).limit(size)
+        base_query.order_by(_sort_clause(sort_by, sort_order)).offset(offset).limit(size)
     )
     assets = result.scalars().all()
 
@@ -177,7 +220,13 @@ async def get_assets(
             .outerjoin(Employee, Asgn.employee_id == Employee.id)
             .outerjoin(Department, Asgn.department_id == Department.id)
             .outerjoin(Branch, Asgn.branch_id == Branch.id)
-            .where(and_(Asgn.asset_id.in_(asset_ids), Asgn.is_active == True))
+            .where(
+                and_(
+                    Asgn.organization_id == organization_id,
+                    Asgn.asset_id.in_(asset_ids),
+                    Asgn.is_active == True,
+                )
+            )
         )
         for row in assign_result.all():
             name = row.employee_name or row.department_name or ""
@@ -194,9 +243,15 @@ async def get_assets(
     return {"items": items, "total": total, "page": page, "pages": pages}
 
 
-async def get_asset(db: AsyncSession, asset_id: uuid.UUID) -> AssetDetail:
+async def get_asset(
+    db: AsyncSession, asset_id: uuid.UUID, organization_id: uuid.UUID
+) -> AssetDetail:
     result = await db.execute(
-        select(Asset).where(Asset.id == asset_id, Asset.deleted_at.is_(None))
+        select(Asset).where(
+            Asset.id == asset_id,
+            Asset.organization_id == organization_id,
+            Asset.deleted_at.is_(None),
+        )
     )
     asset = result.scalar_one_or_none()
     if not asset:
@@ -206,6 +261,7 @@ async def get_asset(db: AsyncSession, asset_id: uuid.UUID) -> AssetDetail:
     assignment_result = await db.execute(
         select(Assignment).where(
             Assignment.asset_id == asset_id,
+            Assignment.organization_id == organization_id,
             Assignment.is_active == True,
         )
     )
@@ -247,9 +303,15 @@ async def get_asset(db: AsyncSession, asset_id: uuid.UUID) -> AssetDetail:
     return detail
 
 
-async def get_asset_raw(db: AsyncSession, asset_id: uuid.UUID) -> Asset:
+async def get_asset_raw(
+    db: AsyncSession, asset_id: uuid.UUID, organization_id: uuid.UUID
+) -> Asset:
     result = await db.execute(
-        select(Asset).where(Asset.id == asset_id, Asset.deleted_at.is_(None))
+        select(Asset).where(
+            Asset.id == asset_id,
+            Asset.organization_id == organization_id,
+            Asset.deleted_at.is_(None),
+        )
     )
     asset = result.scalar_one_or_none()
     if not asset:
@@ -261,13 +323,15 @@ async def update_asset(
     db: AsyncSession,
     asset_id: uuid.UUID,
     data: AssetUpdate,
+    organization_id: uuid.UUID,
 ) -> Asset:
-    asset = await get_asset_raw(db, asset_id)
+    asset = await get_asset_raw(db, asset_id, organization_id)
     update_data = data.model_dump(exclude_unset=True)
 
     if "serial_number" in update_data and update_data["serial_number"] != asset.serial_number:
         existing = await db.execute(
             select(Asset).where(
+                Asset.organization_id == organization_id,
                 Asset.serial_number == update_data["serial_number"],
                 Asset.id != asset_id,
             )
@@ -285,8 +349,10 @@ async def update_asset(
     return asset
 
 
-async def delete_asset(db: AsyncSession, asset_id: uuid.UUID) -> Asset:
-    asset = await get_asset_raw(db, asset_id)
+async def delete_asset(
+    db: AsyncSession, asset_id: uuid.UUID, organization_id: uuid.UUID
+) -> Asset:
+    asset = await get_asset_raw(db, asset_id, organization_id)
     asset.deleted_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(asset)
@@ -297,8 +363,9 @@ async def change_status(
     db: AsyncSession,
     asset_id: uuid.UUID,
     new_status: str,
+    organization_id: uuid.UUID,
 ) -> Asset:
-    asset = await get_asset_raw(db, asset_id)
+    asset = await get_asset_raw(db, asset_id, organization_id)
     validate_transition(asset.status, new_status)
     asset.status = new_status
     await db.commit()

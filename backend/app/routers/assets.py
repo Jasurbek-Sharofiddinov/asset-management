@@ -14,7 +14,6 @@ from app.schemas.asset import (
     AssetResponse,
     AssetDetail,
     AssetStatusUpdate,
-    AssetListResponse,
 )
 from app.schemas.assignment import AssignmentResponse
 from app.services import asset_service, assignment_service, audit_service
@@ -34,20 +33,32 @@ def _get_client_ip(request: Request) -> str:
 async def list_assets(
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
-    status: Optional[str] = Query(None),
-    category: Optional[str] = Query(None),
+    status: Optional[list[str]] = Query(None),
+    category: Optional[list[str]] = Query(None),
     department_id: Optional[uuid.UUID] = Query(None),
     branch_id: Optional[uuid.UUID] = Query(None),
     search: Optional[str] = Query(None),
     date_from: Optional[date] = Query(None),
     date_to: Optional[date] = Query(None),
+    sort_by: Optional[str] = Query(None),
+    sort_order: Optional[str] = Query(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     return await asset_service.get_assets(
-        db, page=page, size=size, status=status, category=category,
-        department_id=department_id, branch_id=branch_id, search=search,
-        date_from=date_from, date_to=date_to,
+        db,
+        organization_id=current_user.organization_id,
+        page=page,
+        size=size,
+        status=status,
+        category=category,
+        department_id=department_id,
+        branch_id=branch_id,
+        search=search,
+        date_from=date_from,
+        date_to=date_to,
+        sort_by=sort_by,
+        sort_order=sort_order,
     )
 
 
@@ -60,13 +71,16 @@ async def create_asset(
         require_role(UserRole.ADMIN.value, UserRole.MANAGER.value)
     ),
 ):
-    asset = await asset_service.create_asset(db, body, current_user.id)
+    asset = await asset_service.create_asset(
+        db, body, current_user.id, current_user.organization_id
+    )
 
     await audit_service.log_action(
         db,
         entity_type="asset",
         entity_id=asset.id,
         action="CREATE",
+        organization_id=current_user.organization_id,
         actor_id=current_user.id,
         actor_name=current_user.full_name,
         new_value={"name": asset.name, "serial_number": asset.serial_number, "category": asset.category},
@@ -82,7 +96,7 @@ async def get_asset(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return await asset_service.get_asset(db, asset_id)
+    return await asset_service.get_asset(db, asset_id, current_user.organization_id)
 
 
 @router.put("/{asset_id}", response_model=AssetResponse)
@@ -95,7 +109,9 @@ async def update_asset(
         require_role(UserRole.ADMIN.value, UserRole.MANAGER.value)
     ),
 ):
-    old_asset = await asset_service.get_asset_raw(db, asset_id)
+    old_asset = await asset_service.get_asset_raw(
+        db, asset_id, current_user.organization_id
+    )
     old_data = {
         "name": old_asset.name,
         "serial_number": old_asset.serial_number,
@@ -103,7 +119,9 @@ async def update_asset(
         "status": old_asset.status,
     }
 
-    asset = await asset_service.update_asset(db, asset_id, body)
+    asset = await asset_service.update_asset(
+        db, asset_id, body, current_user.organization_id
+    )
 
     new_data = {
         "name": asset.name,
@@ -117,6 +135,7 @@ async def update_asset(
         entity_type="asset",
         entity_id=asset.id,
         action="UPDATE",
+        organization_id=current_user.organization_id,
         actor_id=current_user.id,
         actor_name=current_user.full_name,
         old_value=old_data,
@@ -134,13 +153,16 @@ async def delete_asset(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.ADMIN.value)),
 ):
-    asset = await asset_service.delete_asset(db, asset_id)
+    asset = await asset_service.delete_asset(
+        db, asset_id, current_user.organization_id
+    )
 
     await audit_service.log_action(
         db,
         entity_type="asset",
         entity_id=asset.id,
         action="DELETE",
+        organization_id=current_user.organization_id,
         actor_id=current_user.id,
         actor_name=current_user.full_name,
         old_value={"name": asset.name, "serial_number": asset.serial_number},
@@ -160,16 +182,21 @@ async def change_asset_status(
         require_role(UserRole.ADMIN.value, UserRole.MANAGER.value)
     ),
 ):
-    old_asset = await asset_service.get_asset_raw(db, asset_id)
+    old_asset = await asset_service.get_asset_raw(
+        db, asset_id, current_user.organization_id
+    )
     old_status = old_asset.status
 
-    asset = await asset_service.change_status(db, asset_id, body.new_status)
+    asset = await asset_service.change_status(
+        db, asset_id, body.new_status, current_user.organization_id
+    )
 
     await audit_service.log_action(
         db,
         entity_type="asset",
         entity_id=asset.id,
         action="STATUS_CHANGE",
+        organization_id=current_user.organization_id,
         actor_id=current_user.id,
         actor_name=current_user.full_name,
         old_value={"status": old_status},
@@ -185,26 +212,13 @@ async def change_asset_status(
 async def get_asset_qr(
     asset_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    asset_detail = await asset_service.get_asset(db, asset_id)
-
-    assigned_to = None
-    branch = None
-    if asset_detail.current_assignment:
-        assigned_to = asset_detail.current_assignment.employee_name
-        branch = asset_detail.current_assignment.branch_name
-
-    qr_data = {
-        "id": str(asset_detail.id),
-        "name": asset_detail.name,
-        "serial": asset_detail.serial_number,
-        "category": asset_detail.category,
-        "status": asset_detail.status,
-        "assignedTo": assigned_to,
-        "branch": branch,
-        "scanUrl": f"/api/assets/{asset_detail.id}",
-    }
-
+    asset_detail = await asset_service.get_asset(
+        db, asset_id, current_user.organization_id
+    )
+    # Minimal payload for the scanner: asset id only (no PII / status).
+    qr_data = {"id": str(asset_detail.id)}
     png_bytes = generate_qr_code(qr_data)
     return Response(content=png_bytes, media_type="image/png")
 
@@ -215,4 +229,6 @@ async def get_asset_history(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    return await assignment_service.get_asset_assignments(db, asset_id)
+    return await assignment_service.get_asset_assignments(
+        db, asset_id, current_user.organization_id
+    )
