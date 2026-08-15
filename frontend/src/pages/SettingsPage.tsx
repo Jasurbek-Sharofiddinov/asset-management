@@ -22,6 +22,7 @@ import { PageLoader } from '../components/ui/LoadingSpinner'
 import { useToast } from '../components/ui/Toast'
 import { useAuthStore } from '../stores/authStore'
 import { useLanguageStore } from '../stores/languageStore'
+import { tenantOrigin } from '../lib/config'
 import type { TranslationKey } from '../i18n/translations'
 import type { User, UserRole } from '../types'
 
@@ -85,6 +86,12 @@ const makeEmployeeSchema = (t: Translate) =>
     position: z.string().optional(),
   })
 
+type CreateUserFormData = z.infer<ReturnType<typeof makeCreateUserSchema>>
+type ResetPasswordFormData = z.infer<ReturnType<typeof makeResetPasswordSchema>>
+type DepartmentFormData = z.infer<ReturnType<typeof makeDepartmentSchema>>
+type BranchFormData = z.infer<ReturnType<typeof makeBranchSchema>>
+type EmployeeFormData = z.infer<ReturnType<typeof makeEmployeeSchema>>
+
 export default function SettingsPage() {
   const { t } = useLanguageStore()
   const { user } = useAuthStore()
@@ -134,7 +141,7 @@ export default function SettingsPage() {
   })
 
   // Department form
-  const deptForm = useForm({
+  const deptForm = useForm<DepartmentFormData>({
     resolver: (values, ctx, opts) => zodResolver(departmentSchema)(values, ctx, opts),
     defaultValues: { name: '' },
   })
@@ -154,7 +161,7 @@ export default function SettingsPage() {
   })
 
   // Branch form
-  const branchForm = useForm({
+  const branchForm = useForm<BranchFormData>({
     resolver: (values, ctx, opts) => zodResolver(branchSchema)(values, ctx, opts),
     defaultValues: { name: '', location: '' },
   })
@@ -174,9 +181,9 @@ export default function SettingsPage() {
   })
 
   // Employee form
-  const employeeForm = useForm({
+  const employeeForm = useForm<EmployeeFormData>({
     resolver: (values, ctx, opts) => zodResolver(employeeSchema)(values, ctx, opts),
-    defaultValues: { full_name: '', email: '', position: '' },
+    defaultValues: { full_name: '', email: '', position: '', department_id: '', branch_id: '' },
   })
 
   const createEmployeeMutation = useMutation({
@@ -199,7 +206,7 @@ export default function SettingsPage() {
     enabled: isAdmin,
   })
 
-  const createUserForm = useForm({
+  const createUserForm = useForm<CreateUserFormData>({
     resolver: (values, ctx, opts) => zodResolver(createUserSchema)(values, ctx, opts),
     defaultValues: {
       full_name: '',
@@ -210,7 +217,7 @@ export default function SettingsPage() {
     },
   })
 
-  const resetForm = useForm({
+  const resetForm = useForm<ResetPasswordFormData>({
     resolver: (values, ctx, opts) => zodResolver(resetPasswordSchema)(values, ctx, opts),
     defaultValues: { password: generateTempPassword(), confirm: '' },
   })
@@ -618,6 +625,14 @@ export default function SettingsPage() {
               <CardTitle>{t('settings.systemConfig')}</CardTitle>
             </CardHeader>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="p-4 rounded-lg bg-vault-muted border border-vault-border sm:col-span-2">
+                <p className="text-xs text-vault-muted-text">Workspace URL</p>
+                <p className="text-sm text-vault-text font-medium mt-1 font-mono">
+                  {user?.organization?.slug
+                    ? tenantOrigin(user.organization.slug)
+                    : window.location.origin}
+                </p>
+              </div>
               <div className="p-4 rounded-lg bg-vault-muted border border-vault-border">
                 <p className="text-xs text-vault-muted-text">{t('settings.application')}</p>
                 <p className="text-sm text-vault-text font-medium mt-1">AssetVault v1.0.0</p>

@@ -135,23 +135,35 @@ npm run dev
 
 ## Deployment (Production)
 
-Live at **https://asset.assetvault.uz** (Let's Encrypt HTTPS). During the
-`datamou.uz` → `assetvault.uz` cutover both apexes can be served together via
-`BASE_DOMAIN` + `LEGACY_BASE_DOMAIN` (see root `.env.example`).
+Live hosts (Let's Encrypt HTTPS):
+
+| Host | Role |
+|------|------|
+| `https://app.assetvault.uz` | Shared tenant SPA — workspace **finder** only (no password login, no JWT) |
+| `https://{slug}.assetvault.uz` | Customer workspace — password login and the dashboard |
+| `https://demo.assetvault.uz` | Seeded demo workspace |
+| `https://admin.assetvault.uz` | Platform operator console |
+| `https://assetvault.uz` | Marketing / apex (same tenant SPA as `app.`) |
+| `https://asset.datamou.uz` | Legacy VC host — **301** to `https://app.assetvault.uz` |
+
+JWT access tokens live in `localStorage` (origin-scoped). Password login is issued only on `{slug}.{BASE_DOMAIN}`. Shared hosts (`app.`, apex, `www`, `admin`) never mint tenant tokens; the finder looks up `{slug, name}` and then navigates to `https://{slug}.{BASE_DOMAIN}/login`.
+
+During the `datamou.uz` → `assetvault.uz` cutover both apexes can be served together via `BASE_DOMAIN` + `LEGACY_BASE_DOMAIN` (see root `.env.example`).
 
 Deployed with Docker Compose on a Linux host using `docker-compose.prod.yml`, which differs from the local compose file:
 
-- **web** — multi-stage build (`frontend/Dockerfile.prod`): Vite builds static assets, served by unprivileged Nginx (container ports 8080/8443 → host 80/443). Nginx config is an **envsubst template** (`frontend/nginx.conf.template`) rendered at container start from `NGINX_SERVER_NAMES` and `TLS_CERT_NAME`. Public `/docs`, `/openapi.json`, and `/redoc` are blocked at nginx.
-- **backend / db / redis** — same images as local, but the DB and Redis ports are **not** published to the host. Redis requires `REDIS_PASSWORD`. Backend CORS is derived from `BASE_DOMAIN` / `LEGACY_BASE_DOMAIN` (apex + `asset.{domain}`).
-- **Secrets** (`POSTGRES_PASSWORD`, `JWT_SECRET`, `REDIS_PASSWORD`, `GROQ_API_KEY`) live in a server-only `.env` next to the compose file — never committed. Pass `SEED_PASSWORD` when seeding (no prod default). Set `BASE_DOMAIN`, and optionally `LEGACY_BASE_DOMAIN`, `TLS_CERT_NAME`, `NGINX_SERVER_NAMES`.
+- **web** — multi-stage build (`frontend/Dockerfile.prod`): Vite builds the tenant SPA and the platform console (`npm run build` + `npm run build:admin`), served by unprivileged Nginx (container ports 8080/8443 → host 80/443). Nginx config is an **envsubst template** (`frontend/nginx.conf.template`) rendered at container start from `NGINX_SERVER_NAMES`, `NGINX_PLATFORM_SERVER_NAMES`, `NGINX_LEGACY_REDIRECT_NAMES`, and `TLS_CERT_NAME`. Tenant `server_name` includes `*.assetvault.uz`; the exact `admin.` name still wins for the platform SPA. Public `/docs`, `/openapi.json`, and `/redoc` are blocked at nginx.
+- **backend / db / redis** — same images as local, but the DB and Redis ports are **not** published to the host. Redis requires `REDIS_PASSWORD`. Backend CORS allows explicit localhost origins plus an anchored regex `https://({label}.)?{BASE_DOMAIN|LEGACY_BASE_DOMAIN}` so arbitrary workspace origins work with credentials.
+- **Secrets** (`POSTGRES_PASSWORD`, `JWT_SECRET`, `REDIS_PASSWORD`, `GROQ_API_KEY`) live in a server-only `.env` next to the compose file — never committed. Production compose sets `SKIP_SEED=1`. Pass `SEED_PASSWORD` only when you intentionally seed (no prod default). Set `BASE_DOMAIN`, `APP_SUBDOMAIN=app`, `PLATFORM_SUBDOMAIN=admin`, and optionally `LEGACY_BASE_DOMAIN`, `TLS_CERT_NAME`, `NGINX_SERVER_NAMES`.
 
 ```bash
 # on the server
 docker compose -f docker-compose.prod.yml up -d --build
-docker compose -f docker-compose.prod.yml exec -T -e SEED_PASSWORD="$SEED_PASSWORD" backend python seed.py   # first run only
+# first run only — sample inventory lands on slug `demo`, not `default`
+docker compose -f docker-compose.prod.yml exec -T -e SEED_PASSWORD="$SEED_PASSWORD" -e SKIP_SEED=0 backend python seed.py
 ```
 
-TLS certificates are issued via a `certbot` container (webroot challenge) and auto-renewed by a twice-daily cron that reloads Nginx. `TLS_CERT_NAME` is the Let's Encrypt `live/` directory name and may differ from `BASE_DOMAIN` (transition certs or a future wildcard).
+TLS: named hosts (`app`, `demo`, `admin`, apex, `asset.datamou.uz`) are covered by an HTTP-01 Let's Encrypt certificate. **Wildcard** `*.assetvault.uz` requires DNS-01; without it, new org subdomains will show a browser warning until a wildcard cert is issued. `TLS_CERT_NAME` is the Let's Encrypt `live/` directory name and may differ from `BASE_DOMAIN`.
 
 > `deploy.sh` is a **legacy** HTTP/systemd path on port 8012; prefer `docker-compose.prod.yml`.
 
@@ -159,20 +171,27 @@ TLS certificates are issued via a `certbot` container (webroot challenge) and au
 
 ## Seed accounts
 
-After a successful `seed.py` run, the database contains `admin@assetvault.uz`,
-`manager@assetvault.uz`, and `auditor@assetvault.uz`. Their password is whatever
-you set in `SEED_PASSWORD` for that run — it is not published in this README.
+After a successful `seed.py` run, sample inventory lives in the **demo** org
+(slug `demo`). The reserved slug `default` still exists for migration backfill
+but is **not** a bindable tenant host. Log in at `https://demo.assetvault.uz` as
+`admin@assetvault.uz`, `manager@assetvault.uz`, or `auditor@assetvault.uz`.
+Their password is whatever you set in `SEED_PASSWORD` for that run — it is not
+published in this README.
 
-New accounts must be created by an **ADMIN** in Settings (or via `POST /api/auth/users`).
-Public self-registration of *users* is disabled; organizations apply through `/signup` and wait for platform activation.
+New tenant users must be created by an **ADMIN** in Settings (or via `POST /api/auth/users`).
+Public self-registration of *users* is disabled. Organizations apply on a shared
+host (`/signup` on `app.` / localhost) and wait for platform activation. Signup
+is refused on any bound workspace host.
 
 ---
 
 ## Features
 
 ### Authentication & Roles
-- JWT-based auth with access/refresh tokens
-- Four roles: **Admin**, **Manager**, **Viewer**, **Auditor**
+- JWT-based auth with access/refresh tokens (30 min / 7 days)
+- Four tenant roles: **Admin**, **Manager**, **Viewer**, **Auditor** (platform operators are a separate identity)
+- Host binding: `{slug}.{BASE_DOMAIN}` is the workspace; `app.` / apex / `admin.` / `www` are unbound
+- Shared-host login returns **403** (finder only). Bound-host login forces that slug
 - Role-based access control on all endpoints and UI routes
 - Tenant **ADMIN** creates users in Settings with a temporary password; the user must change it on first login
 - Tenant **ADMIN** can reset another user's password (also forces a change on next login)
@@ -231,7 +250,7 @@ Public self-registration of *users* is disabled; organizations apply through `/s
 ## Project Structure
 
 ```
-asset-management/
+assetvault/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py              # FastAPI app, CORS, routers, exception handlers
@@ -242,24 +261,27 @@ asset-management/
 │   │   ├── models/              # SQLAlchemy ORM models
 │   │   ├── schemas/             # Pydantic request/response schemas
 │   │   ├── routers/             # API route handlers
-│   │   └── services/            # Business logic layer
-│   ├── alembic/                 # Database migrations
-│   ├── seed.py                  # Faker-based data seeder
+│   │   └── services/            # Business logic (incl. host_tenant host binding)
+│   ├── alembic/                 # Database migrations (schema authority)
+│   ├── tests/                   # pytest (isolated assetvault_test database)
+│   ├── seed.py                  # Faker-based data seeder (demo org)
 │   ├── requirements.txt
 │   └── Dockerfile
 ├── frontend/
 │   ├── src/
 │   │   ├── components/          # UI components + layout
-│   │   ├── pages/               # Route pages
-│   │   ├── lib/                 # API client, utilities
+│   │   ├── pages/               # Route pages (tenant + platform admin)
+│   │   ├── lib/                 # API client, host/config helpers
 │   │   ├── stores/              # Zustand auth store
 │   │   ├── types/               # TypeScript interfaces
 │   │   ├── App.tsx              # Router + providers
 │   │   └── index.css            # Tailwind + design tokens
 │   ├── vite.config.ts
-│   └── Dockerfile
-├── nginx/nginx.conf
-├── docker-compose.yml
+│   ├── vite.admin.config.ts     # Platform console entry
+│   ├── nginx.conf.template      # Prod nginx (envsubst)
+│   └── Dockerfile.prod
+├── docker-compose.yml           # Local stack
+├── docker-compose.prod.yml      # Production stack
 └── README.md
 ```
 
@@ -268,18 +290,20 @@ asset-management/
 ## API Endpoints
 
 ### Auth
-| Method | Endpoint                              | Description                          |
-|--------|---------------------------------------|--------------------------------------|
-| POST   | /api/auth/signup                      | Public trial application             |
-| POST   | /api/auth/login                       | Login, get tokens                    |
-| POST   | /api/auth/refresh                     | Refresh token                        |
-| GET    | /api/auth/me                          | Current user                         |
-| POST   | /api/auth/logout                      | Logout                               |
-| POST   | /api/auth/change-password             | Change own password                  |
-| GET    | /api/auth/users                       | List org users (ADMIN)               |
-| POST   | /api/auth/users                       | Create org user (ADMIN)              |
-| PATCH  | /api/auth/users/{id}                  | Update role / active (ADMIN)         |
-| POST   | /api/auth/users/{id}/reset-password   | Reset password (ADMIN)               |
+| Method | Endpoint                              | Description                                      |
+|--------|---------------------------------------|--------------------------------------------------|
+| POST   | /api/auth/signup                      | Public trial application (shared hosts only)     |
+| GET    | /api/auth/tenant                      | Workspace `{slug, name}` from `Host` (or 404)    |
+| POST   | /api/auth/workspaces                  | List usable workspaces for an email (finder)     |
+| POST   | /api/auth/login                       | Login, get tokens (bound tenant host in prod)    |
+| POST   | /api/auth/refresh                     | Refresh token                                    |
+| GET    | /api/auth/me                          | Current user (host must match the token's org)   |
+| POST   | /api/auth/logout                      | Logout                                           |
+| POST   | /api/auth/change-password             | Change own password                              |
+| GET    | /api/auth/users                       | List org users (ADMIN)                           |
+| POST   | /api/auth/users                       | Create org user (ADMIN)                          |
+| PATCH  | /api/auth/users/{id}                  | Update role / active (ADMIN)                     |
+| POST   | /api/auth/users/{id}/reset-password   | Reset password (ADMIN)                           |
 
 ### Assets
 | Method | Endpoint                   | Description              |
@@ -322,6 +346,153 @@ asset-management/
 | GET    | /api/employees    | List employees |
 | GET    | /api/departments  | List depts     |
 | GET    | /api/branches     | List branches  |
+
+---
+
+## Database ER model
+
+PostgreSQL. Tenant rows are scoped by `organization_id`. Assets use **soft delete** (`deleted_at`). `audit_logs` and `platform_audit_logs` are **append-only** (no UPDATE/DELETE). Alembic is the only schema authority.
+
+```mermaid
+erDiagram
+    organizations ||--o{ users : has
+    organizations ||--o{ assets : has
+    organizations ||--o{ branches : has
+    organizations ||--o{ departments : has
+    organizations ||--o{ employees : has
+    organizations ||--o{ assignments : has
+    organizations ||--o{ audit_logs : has
+    organizations |o--o{ platform_audit_logs : "optional target"
+
+    users ||--o{ refresh_tokens : issues
+    users ||--o{ assets : "created_by"
+    users ||--o{ assignments : "assigned_by"
+
+    departments ||--o{ employees : has
+    branches ||--o{ employees : has
+    departments ||--o{ assignments : "optional"
+    branches ||--|{ assignments : requires
+    employees ||--o{ assignments : "optional"
+    assets ||--o{ assignments : has
+
+    platform_admins ||--o{ platform_refresh_tokens : issues
+    platform_admins ||--o{ platform_audit_logs : acts
+    platform_admins |o--o{ organizations : reviews
+
+    organizations {
+        uuid id PK
+        string name
+        string slug UK
+        string status
+        string plan
+        timestamptz trial_ends_at
+        timestamptz deleted_at
+        uuid reviewed_by FK
+    }
+    users {
+        uuid id PK
+        uuid organization_id FK
+        string email
+        string role
+        bool is_active
+        bool must_change_password
+    }
+    assets {
+        uuid id PK
+        uuid organization_id FK
+        string serial_number
+        string status
+        string category
+        uuid created_by FK
+        timestamptz deleted_at
+    }
+    assignments {
+        uuid id PK
+        uuid organization_id FK
+        uuid asset_id FK
+        uuid employee_id FK
+        uuid department_id FK
+        uuid branch_id FK
+        uuid assigned_by FK
+        bool is_active
+    }
+    employees {
+        uuid id PK
+        uuid organization_id FK
+        uuid department_id FK
+        uuid branch_id FK
+        string email
+    }
+    departments {
+        uuid id PK
+        uuid organization_id FK
+        string name
+    }
+    branches {
+        uuid id PK
+        uuid organization_id FK
+        string name
+    }
+    audit_logs {
+        bigint id PK
+        uuid organization_id FK
+        string entity_type
+        string action
+        json old_value
+        json new_value
+        timestamptz occurred_at
+    }
+    refresh_tokens {
+        uuid id PK
+        uuid user_id FK
+        string token_hash UK
+        uuid family_id
+        timestamptz expires_at
+    }
+    platform_admins {
+        uuid id PK
+        string email UK
+        bool is_active
+    }
+    platform_refresh_tokens {
+        uuid id PK
+        uuid admin_id FK
+        string token_hash UK
+    }
+    platform_audit_logs {
+        bigint id PK
+        uuid actor_id FK
+        uuid target_organization_id FK
+        string action
+        timestamptz occurred_at
+    }
+```
+
+Organization `status` values: `pending_review`, `rejected`, `trialing`, `active`, `past_due`, `suspended`, `deleted`. Tenant login and workspace lookup only surface `trialing`, `active`, and `past_due`.
+
+---
+
+## Tests
+
+Backend tests talk to an isolated Postgres database `assetvault_test` (created automatically). They ignore compose `BASE_DOMAIN` so local/dev email login still works unless a test monkeypatches it.
+
+```bash
+# from backend/, with Postgres reachable (PG_HOST defaults to localhost)
+cd backend && pytest
+
+# against the Compose Postgres service (uses DATABASE_URL already injected by compose)
+docker compose -f docker-compose.prod.yml run --rm --no-deps \
+  -e PG_HOST=db \
+  --entrypoint pytest backend
+```
+
+Frontend unit tests and a production-parity typecheck:
+
+```bash
+cd frontend
+npx vitest run
+npx tsc -b --pretty false
+```
 
 ---
 

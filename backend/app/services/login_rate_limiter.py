@@ -250,3 +250,14 @@ signup_rate_limiter = FixedWindowRateLimiter(
     max_hits=SIGNUP_MAX_HITS,
     window_seconds=SIGNUP_WINDOW_SECONDS,
 )
+
+tenant_lookup_rate_limiter = FixedWindowRateLimiter(
+    key_prefix="tenant_lookup",
+    max_hits=30,
+    window_seconds=60,
+)
+workspace_lookup_rate_limiter = FixedWindowRateLimiter(
+    key_prefix="workspace_lookup",
+    max_hits=5,
+    window_seconds=300,
+)

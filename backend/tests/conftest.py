@@ -10,6 +10,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from urllib.parse import unquote, urlparse
 
 import psycopg2
 import pytest
@@ -20,9 +21,29 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 BACKEND_DIR = Path(__file__).resolve().parents[1]
 TEST_DB = "assetvault_test"
 PG_USER = "postgres"
-PG_PASSWORD = os.environ.get("POSTGRES_PASSWORD", "postgres")
-PG_HOST = "localhost"
 PG_PORT = "5432"
+PG_HOST = os.environ.get("PG_HOST", "localhost")
+
+
+def _password_from_url(url: str) -> str | None:
+    if not url:
+        return None
+    normalized = url.replace("postgresql+asyncpg://", "postgresql://", 1)
+    try:
+        parsed = urlparse(normalized)
+    except ValueError:
+        return None
+    if parsed.password:
+        return unquote(parsed.password)
+    return None
+
+
+PG_PASSWORD = (
+    os.environ.get("POSTGRES_PASSWORD")
+    or _password_from_url(os.environ.get("SYNC_DATABASE_URL", ""))
+    or _password_from_url(os.environ.get("DATABASE_URL", ""))
+    or "postgres"
+)
 
 os.environ["JWT_SECRET"] = "test-jwt-secret-assetvault-not-for-production-use"
 os.environ["DATABASE_URL"] = (
@@ -34,6 +55,11 @@ os.environ["SYNC_DATABASE_URL"] = (
 os.environ["REDIS_URL"] = "redis://127.0.0.1:1/0"
 os.environ["ENVIRONMENT"] = "development"
 os.environ["SEED_PASSWORD"] = "SeedPass1"
+# Isolate from compose/prod BASE_DOMAIN so email login on unbound hosts still works.
+os.environ["BASE_DOMAIN"] = ""
+os.environ["LEGACY_BASE_DOMAIN"] = ""
+os.environ["APP_SUBDOMAIN"] = "app"
+os.environ["PLATFORM_SUBDOMAIN"] = "admin"
 
 if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
@@ -97,12 +123,21 @@ async def _truncate_and_reset_limiter():
     from sqlalchemy import text
 
     from app.database import engine
-    from app.services.login_rate_limiter import login_rate_limiter, signup_rate_limiter
+    from app.services.login_rate_limiter import (
+        login_rate_limiter,
+        signup_rate_limiter,
+        tenant_lookup_rate_limiter,
+        workspace_lookup_rate_limiter,
+    )
 
     login_rate_limiter._redis_failed = True
     login_rate_limiter._memory.clear()
     signup_rate_limiter._redis_failed = True
     signup_rate_limiter._memory.clear()
+    tenant_lookup_rate_limiter._redis_failed = True
+    tenant_lookup_rate_limiter._memory.clear()
+    workspace_lookup_rate_limiter._redis_failed = True
+    workspace_lookup_rate_limiter._memory.clear()
 
     async with engine.begin() as conn:
         await conn.execute(
@@ -278,11 +313,18 @@ async def platform_admin(db_session):
     )
 
 
-async def login(client: AsyncClient, email: str, password: str, slug: str | None = None) -> str:
+async def login(
+    client: AsyncClient,
+    email: str,
+    password: str,
+    slug: str | None = None,
+    host: str | None = None,
+) -> str:
     body = {"email": email, "password": password}
     if slug:
         body["organization_slug"] = slug
-    resp = await client.post("/api/auth/login", json=body)
+    headers = {"Host": host} if host else {}
+    resp = await client.post("/api/auth/login", json=body, headers=headers)
     assert resp.status_code == 200, resp.text
     return resp.json()["access_token"]
 

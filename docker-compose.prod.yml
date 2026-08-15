@@ -39,11 +39,11 @@ services:
       # entrypoint.sh still runs `alembic upgrade head` on every boot.
       # When seeding manually, pass -e SEED_PASSWORD=... (required by seed.py).
       SKIP_SEED: "1"
-      # Domain → CORS: apex + app.{domain} + platform.{domain} for BASE and optional LEGACY.
-      # Do not set a wildcard origin (incompatible with allow_credentials).
+      # Domain → CORS regex allows https://{slug,app,admin,apex}.{BASE_DOMAIN}.
+      # Do not set a wildcard origin string (incompatible with allow_credentials).
       BASE_DOMAIN: ${BASE_DOMAIN:-assetvault.uz}
       LEGACY_BASE_DOMAIN: ${LEGACY_BASE_DOMAIN:-datamou.uz}
-      APP_SUBDOMAIN: ${APP_SUBDOMAIN:-asset}
+      APP_SUBDOMAIN: ${APP_SUBDOMAIN:-app}
       PLATFORM_SUBDOMAIN: ${PLATFORM_SUBDOMAIN:-admin}
       CORS_ORIGINS: ${CORS_ORIGINS:-[]}
       GROQ_API_KEY: ${GROQ_API_KEY:?GROQ_API_KEY must be set}
@@ -61,19 +61,28 @@ services:
       dockerfile: Dockerfile.prod
       args:
         VITE_BASE_DOMAIN: ${BASE_DOMAIN:-assetvault.uz}
+        VITE_APP_SUBDOMAIN: ${APP_SUBDOMAIN:-app}
     restart: unless-stopped
     ports:
       # Unprivileged nginx listens on 8080/8443 inside the container
       - "80:8080"
       - "443:8443"
     environment:
-      # Rendered into server_name (space-separated). Include legacy hosts during cutover.
-      NGINX_SERVER_NAMES: ${NGINX_SERVER_NAMES:-asset.assetvault.uz assetvault.uz asset.datamou.uz datamou.uz}
+      # Rendered into server_name (space-separated). Tenant SPA + demo host.
+      # Legacy datamou hosts are NOT listed here — they 301 via NGINX_LEGACY_REDIRECT_NAMES.
+      NGINX_SERVER_NAMES: ${NGINX_SERVER_NAMES:-app.assetvault.uz assetvault.uz demo.assetvault.uz *.assetvault.uz}
+      # Platform operator console hosts — {PLATFORM_SUBDOMAIN}.{domain}, matching
+      # the CORS origins the backend derives. Must be non-empty (server_name needs
+      # at least one name) and must not overlap NGINX_SERVER_NAMES.
+      NGINX_PLATFORM_SERVER_NAMES: ${NGINX_PLATFORM_SERVER_NAMES:-admin.assetvault.uz}
+      # Permanent 301 target for VC/bookmark hosts (asset.datamou.uz).
+      NGINX_LEGACY_REDIRECT_NAMES: ${NGINX_LEGACY_REDIRECT_NAMES:-asset.datamou.uz}
+      NGINX_CANONICAL_APP_ORIGIN: ${NGINX_CANONICAL_APP_ORIGIN:-https://app.assetvault.uz}
       # Let's Encrypt live/ directory name — may differ from BASE_DOMAIN (transition / wildcard).
-      TLS_CERT_NAME: ${TLS_CERT_NAME:-asset.datamou.uz}
+      TLS_CERT_NAME: ${TLS_CERT_NAME:-assetvault.uz}
       # Only substitute these; leave nginx $host / $uri / $scheme / … intact.
       # Substring match on env var names (see nginx 20-envsubst-on-templates.sh).
-      NGINX_ENVSUBST_FILTER: NGINX_SERVER_NAMES|TLS_CERT_NAME
+      NGINX_ENVSUBST_FILTER: NGINX_SERVER_NAMES|NGINX_PLATFORM_SERVER_NAMES|NGINX_LEGACY_REDIRECT_NAMES|NGINX_CANONICAL_APP_ORIGIN|TLS_CERT_NAME
     volumes:
       # No finished nginx.conf mount — envsubst writes /etc/nginx/conf.d/default.conf
       - ./certbot/conf:/etc/letsencrypt:ro

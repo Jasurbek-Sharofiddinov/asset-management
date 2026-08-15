@@ -1,4 +1,6 @@
-FROM node:20-alpine
+# Keep the Node major in sync with the build stage of Dockerfile.prod so a dev
+# run and a production build resolve the same toolchain.
+FROM node:22-alpine
 
 WORKDIR /app
 
@@ -7,7 +9,7 @@ RUN chown -R node:node /app
 USER node
 
 COPY --chown=node:node package*.json ./
-RUN npm install
+RUN npm ci
 COPY --chown=node:node . .
 
 EXPOSE 5173

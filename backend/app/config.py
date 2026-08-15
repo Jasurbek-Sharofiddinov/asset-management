@@ -1,4 +1,5 @@
 from typing import List, Set
+import re
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
@@ -12,7 +13,7 @@ FORBIDDEN_JWT_SECRETS = frozenset({
 # Default reserved host labels for {slug}.BASE_DOMAIN — configuration-driven, not a code literal.
 _DEFAULT_RESERVED_SLUGS = (
     "www,api,admin,app,mail,static,assets,cdn,staging,dev,status,support,"
-    "help,docs,default,console,platform,auth,login,signup,billing,webhook,webhooks,asset"
+    "help,docs,default,demo,console,platform,auth,login,signup,billing,webhook,webhooks,asset"
 )
 
 
@@ -84,21 +85,12 @@ class Settings(BaseSettings):
         }
 
     def get_cors_origins(self) -> List[str]:
-        """Merge explicit CORS_ORIGINS with https origins derived from domain settings.
+        """Explicit origins (localhost + listed CORS_ORIGINS).
 
-        Includes apex + tenant app host + platform console host for BASE_DOMAIN
-        and LEGACY_BASE_DOMAIN. No wildcard origins (incompatible with allow_credentials=True).
+        Production tenant/platform hosts are allowed via get_cors_origin_regex()
+        so arbitrary {slug}.{BASE_DOMAIN} origins work with credentials.
         """
         origins: List[str] = list(self.CORS_ORIGINS)
-        for domain in (self.BASE_DOMAIN, self.LEGACY_BASE_DOMAIN):
-            d = (domain or "").strip().lstrip(".")
-            if not d:
-                continue
-            app_host = f"{self.APP_SUBDOMAIN}.{d}"
-            platform_host = f"{self.PLATFORM_SUBDOMAIN}.{d}"
-            origins.append(f"https://{app_host}")
-            origins.append(f"https://{platform_host}")
-            origins.append(f"https://{d}")
         seen: set[str] = set()
         deduped: List[str] = []
         for origin in origins:
@@ -106,6 +98,18 @@ class Settings(BaseSettings):
                 seen.add(origin)
                 deduped.append(origin)
         return deduped
+
+    def get_cors_origin_regex(self) -> str | None:
+        """Anchored https origins for apex and one-label subdomains of configured domains."""
+        parts: list[str] = []
+        for domain in (self.BASE_DOMAIN, self.LEGACY_BASE_DOMAIN):
+            d = (domain or "").strip().lstrip(".")
+            if d:
+                parts.append(re.escape(d))
+        if not parts:
+            return None
+        joined = "|".join(parts)
+        return rf"^https://([a-z0-9-]+\.)?({joined})$"
 
     @field_validator("JWT_SECRET")
     @classmethod

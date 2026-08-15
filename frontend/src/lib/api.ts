@@ -170,6 +170,16 @@ export const authApi = {
     const { data } = await api.get('/api/auth/me')
     return data
   },
+  getTenant: async (): Promise<{ slug: string; name: string }> => {
+    const { data } = await api.get('/api/auth/tenant')
+    return data
+  },
+  lookupWorkspaces: async (
+    email: string,
+  ): Promise<{ items: { slug: string; name: string }[] }> => {
+    const { data } = await api.post('/api/auth/workspaces', { email })
+    return data
+  },
   listUsers: async (): Promise<User[]> => {
     const { data } = await api.get('/api/auth/users')
     return data

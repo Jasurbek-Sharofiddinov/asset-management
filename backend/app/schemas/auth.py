@@ -210,3 +210,29 @@ class RefreshRequest(BaseModel):
 
 class LogoutRequest(BaseModel):
     refresh_token: Optional[str] = None
+
+
+class TenantInfoResponse(BaseModel):
+    slug: str
+    name: str
+
+
+class WorkspaceLookupRequest(BaseModel):
+    email: str
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: str) -> str:
+        email = v.strip().lower()
+        if not _EMAIL_RE.match(email):
+            raise ValueError("Invalid email address.")
+        return email
+
+
+class WorkspaceItem(BaseModel):
+    slug: str
+    name: str
+
+
+class WorkspaceLookupResponse(BaseModel):
+    items: list[WorkspaceItem] = []

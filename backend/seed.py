@@ -74,6 +74,11 @@ class PlatformAdmin(Base):
 DEFAULT_ORGANIZATION_ID = uuid.UUID("a0000000-0000-4000-8000-000000000001")
 DEFAULT_ORGANIZATION_SLUG = "default"
 
+# Dedicated demo workspace served at demo.{BASE_DOMAIN}. Sample inventory and
+# SEED_USERS live here; the default org stays an empty reserved shell.
+DEMO_ORGANIZATION_ID = uuid.UUID("a0000000-0000-4000-8000-000000000002")
+DEMO_ORGANIZATION_SLUG = "demo"
+
 
 class User(Base):
     __tablename__ = "users"
@@ -350,7 +355,7 @@ SEED_USERS = (
 
 
 def upsert_seed_users(session, org_id, seed_password: str):
-    """Create or reset the three default-org seed accounts.
+    """Create or reset the three demo-org seed accounts.
 
     Always reapplies ``seed_password``. Other users in the org are left alone.
     """
@@ -390,6 +395,88 @@ def upsert_seed_users(session, org_id, seed_password: str):
     return users
 
 
+def _ensure_org(session, *, org_id, name, slug, status="active", plan="business"):
+    org = session.query(Organization).filter_by(slug=slug).first()
+    if org is None:
+        org = session.query(Organization).filter_by(id=org_id).first()
+    if org is None:
+        org = Organization(
+            id=org_id,
+            name=name,
+            slug=slug,
+            status=status,
+            plan=plan,
+        )
+        session.add(org)
+        session.flush()
+    return org
+
+
+def _reassign_org_rows(session, model, from_id, to_id):
+    session.query(model).filter_by(organization_id=from_id).update(
+        {model.organization_id: to_id},
+        synchronize_session=False,
+    )
+
+
+def relocate_default_sample_to_demo(session, default_org, demo_org):
+    """Move previously seeded inventory/users off the reserved default org.
+
+    Idempotent: if demo already has assets, only seed-user emails are pulled
+    off default (deleted when demo already has that email).
+    """
+    seed_emails = [email for email, _, _ in SEED_USERS]
+    demo_assets = session.query(Asset).filter_by(organization_id=demo_org.id).count()
+    default_assets = session.query(Asset).filter_by(organization_id=default_org.id).count()
+
+    if demo_assets == 0 and default_assets > 0:
+        for email in seed_emails:
+            on_default = (
+                session.query(User)
+                .filter_by(organization_id=default_org.id, email=email)
+                .first()
+            )
+            on_demo = (
+                session.query(User)
+                .filter_by(organization_id=demo_org.id, email=email)
+                .first()
+            )
+            if on_default and on_demo:
+                session.delete(on_default)
+            elif on_default:
+                on_default.organization_id = demo_org.id
+        session.flush()
+        for model in (User, Asset, Assignment, AuditLog, Employee, Department, Branch):
+            _reassign_org_rows(session, model, default_org.id, demo_org.id)
+        session.flush()
+        print("  Relocated default-org sample data to demo org")
+        return
+
+    for email in seed_emails:
+        on_default = (
+            session.query(User)
+            .filter_by(organization_id=default_org.id, email=email)
+            .first()
+        )
+        on_demo = (
+            session.query(User)
+            .filter_by(organization_id=demo_org.id, email=email)
+            .first()
+        )
+        if on_default and on_demo:
+            session.delete(on_default)
+        elif on_default:
+            on_default.organization_id = demo_org.id
+    session.flush()
+
+
+def _print_seed_logins():
+    print("\nSeeded demo logins (host demo.assetvault.uz; password from SEED_PASSWORD — not printed):")
+    print("  admin@assetvault.uz   (ADMIN)")
+    print("  manager@assetvault.uz (MANAGER)")
+    print("  auditor@assetvault.uz (AUDITOR)")
+
+
 def seed():
     # Schema is managed by Alembic (alembic upgrade head). Do not create_all here.
     session = SessionLocal()
@@ -397,18 +484,21 @@ def seed():
     try:
         print("Seeding database...")
 
-        # ── Organization ────────────────────────────────────────────────
-        org = session.query(Organization).filter_by(slug=DEFAULT_ORGANIZATION_SLUG).first()
-        if not org:
-            org = Organization(
-                id=DEFAULT_ORGANIZATION_ID,
-                name="Default Organization",
-                slug=DEFAULT_ORGANIZATION_SLUG,
-                status="active",
-                plan="business",
-            )
-            session.add(org)
-            session.flush()
+        # Reserved empty shell (migration backfill id/slug). Sample data lives on demo.
+        default_org = _ensure_org(
+            session,
+            org_id=DEFAULT_ORGANIZATION_ID,
+            name="Default Organization",
+            slug=DEFAULT_ORGANIZATION_SLUG,
+        )
+        demo_org = _ensure_org(
+            session,
+            org_id=DEMO_ORGANIZATION_ID,
+            name="Demo Organization",
+            slug=DEMO_ORGANIZATION_SLUG,
+        )
+        relocate_default_sample_to_demo(session, default_org, demo_org)
+        org = demo_org
         org_id = org.id
         print(f"  Using organization {org.slug} ({org_id})")
 
@@ -429,10 +519,7 @@ def seed():
         if existing_assets > 0:
             session.commit()
             print("Demo data already present. Skipping bulk branches/assets.")
-            print("\nSeeded login emails (password from SEED_PASSWORD env var — not printed):")
-            print("  admin@assetvault.uz   (ADMIN)")
-            print("  manager@assetvault.uz (MANAGER)")
-            print("  auditor@assetvault.uz (AUDITOR)")
+            _print_seed_logins()
             bootstrap_platform_admin(session)
             return
 
@@ -689,10 +776,7 @@ def seed():
         print(f"  Total assets:      {len(assets)}")
         print(f"  Total assignments: {len(assignments)}")
         print(f"  Total audit logs:  {len(audit_logs)}")
-        print("\nSeeded login emails (password from SEED_PASSWORD env var — not printed):")
-        print("  admin@assetvault.uz   (ADMIN)")
-        print("  manager@assetvault.uz (MANAGER)")
-        print("  auditor@assetvault.uz (AUDITOR)")
+        _print_seed_logins()
 
         bootstrap_platform_admin(session)
 

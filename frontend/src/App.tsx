@@ -5,6 +5,7 @@ import { useAuthStore } from './stores/authStore'
 import { Layout } from './components/layout/Layout'
 import { PageLoader } from './components/ui/LoadingSpinner'
 import { ToastProvider } from './components/ui/Toast'
+import { APP_ORIGIN, loginMode } from './lib/config'
 import type { UserRole } from './types'
 
 // Lazy load pages
@@ -57,6 +58,10 @@ function ProtectedRoute({
 }) {
   const { isAuthenticated, user } = useAuthStore()
 
+  if (loginMode() === 'finder') {
+    return <Navigate to="/login" replace />
+  }
+
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />
   }
@@ -74,6 +79,10 @@ function ProtectedRoute({
 
 function PublicRoute({ children, redirectIfAuth = true }: { children: React.ReactNode; redirectIfAuth?: boolean }) {
   const { isAuthenticated, user } = useAuthStore()
+
+  if (loginMode() === 'finder') {
+    return <>{children}</>
+  }
 
   if (redirectIfAuth && isAuthenticated) {
     if (user?.must_change_password) {
@@ -96,6 +105,30 @@ function ChangePasswordRoute() {
   return <ChangePasswordPage />
 }
 
+function HomeRoute() {
+  const { isAuthenticated } = useAuthStore()
+  if (loginMode() === 'tenant') {
+    return <Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />
+  }
+  return (
+    <PublicRoute redirectIfAuth={false}>
+      <LandingPage />
+    </PublicRoute>
+  )
+}
+
+function SignupRoute() {
+  if (loginMode() === 'tenant') {
+    window.location.replace(`${APP_ORIGIN}/signup`)
+    return null
+  }
+  return (
+    <PublicRoute>
+      <SignupPage />
+    </PublicRoute>
+  )
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -104,14 +137,7 @@ export default function App() {
           <AuthBootstrap />
           <Suspense fallback={<PageLoader />}>
             <Routes>
-              <Route
-                path="/"
-                element={
-                  <PublicRoute redirectIfAuth={false}>
-                    <LandingPage />
-                  </PublicRoute>
-                }
-              />
+              <Route path="/" element={<HomeRoute />} />
               <Route
                 path="/login"
                 element={
@@ -120,14 +146,7 @@ export default function App() {
                   </PublicRoute>
                 }
               />
-              <Route
-                path="/signup"
-                element={
-                  <PublicRoute>
-                    <SignupPage />
-                  </PublicRoute>
-                }
-              />
+              <Route path="/signup" element={<SignupRoute />} />
               <Route path="/change-password" element={<ChangePasswordRoute />} />
 
               <Route
@@ -160,7 +179,7 @@ export default function App() {
                 />
               </Route>
 
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              <Route path="*" element={<Navigate to={loginMode() === 'finder' ? '/login' : '/dashboard'} replace />} />
             </Routes>
           </Suspense>
         </BrowserRouter>

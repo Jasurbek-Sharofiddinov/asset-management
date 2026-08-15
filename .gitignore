@@ -24,6 +24,9 @@ frontend/dist-admin/
 # Docker
 pgdata/
 
+# Let's Encrypt state written by the certbot service — contains private keys
+certbot/
+
 # OS
 .DS_Store
 Thumbs.db

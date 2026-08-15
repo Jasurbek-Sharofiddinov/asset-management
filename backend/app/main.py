@@ -48,14 +48,18 @@ app = FastAPI(
     openapi_url="/openapi.json" if _docs_enabled else None,
 )
 
-# CORS — origins from CORS_ORIGINS plus https://{app,platform,apex} for BASE_DOMAIN / LEGACY_BASE_DOMAIN
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.get_cors_origins(),
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORS — localhost via allow_origins; production {slug,apex,app,admin}.{domain}
+# via anchored allow_origin_regex (credentials-compatible).
+_cors_kw: dict = {
+    "allow_origins": settings.get_cors_origins(),
+    "allow_credentials": True,
+    "allow_methods": ["*"],
+    "allow_headers": ["*"],
+}
+_cors_regex = settings.get_cors_origin_regex()
+if _cors_regex:
+    _cors_kw["allow_origin_regex"] = _cors_regex
+app.add_middleware(CORSMiddleware, **_cors_kw)
 
 # Register routers
 app.include_router(auth.router)

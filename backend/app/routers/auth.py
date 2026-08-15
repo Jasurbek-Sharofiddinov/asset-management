@@ -30,6 +30,10 @@ from app.schemas.auth import (
     LogoutRequest,
     OrganizationSignupRequest,
     OrganizationSignupResponse,
+    TenantInfoResponse,
+    WorkspaceLookupRequest,
+    WorkspaceLookupResponse,
+    WorkspaceItem,
 )
 from app.exceptions import (
     UnauthorizedException,
@@ -38,14 +42,28 @@ from app.exceptions import (
     ForbiddenException,
     NotFoundException,
 )
+from app.services.host_tenant import bound_organization_slug, tenant_host_enforced
 from app.services import refresh_token_service, organization_service
-from app.services.login_rate_limiter import login_rate_limiter, signup_rate_limiter
+from app.services.login_rate_limiter import (
+    login_rate_limiter,
+    signup_rate_limiter,
+    tenant_lookup_rate_limiter,
+    workspace_lookup_rate_limiter,
+)
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+_USABLE_WORKSPACE_STATUSES = frozenset(
+    {
+        OrganizationStatus.TRIALING.value,
+        OrganizationStatus.ACTIVE.value,
+        OrganizationStatus.PAST_DUE.value,
+    }
+)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -322,6 +340,8 @@ async def signup(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
+    if bound_organization_slug(request):
+        raise ForbiddenException("Signup is not available on a workspace host.")
     ip = _client_ip(request)
     retry_after = await signup_rate_limiter.hit(ip)
     if retry_after:
@@ -347,6 +367,67 @@ async def signup(
     return OrganizationSignupResponse()
 
 
+@router.get("/tenant", response_model=TenantInfoResponse)
+async def get_tenant(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    ip = _client_ip(request)
+    retry_after = await tenant_lookup_rate_limiter.hit(ip)
+    if retry_after:
+        raise TooManyRequestsException(
+            detail="Too many requests. Please try again later.",
+            retry_after=retry_after,
+        )
+    slug = bound_organization_slug(request)
+    if not slug:
+        raise NotFoundException("Workspace not found")
+    result = await db.execute(
+        select(Organization).where(
+            Organization.slug == slug,
+            Organization.deleted_at.is_(None),
+        )
+    )
+    org = result.scalar_one_or_none()
+    if org is None or org.status not in _USABLE_WORKSPACE_STATUSES:
+        raise NotFoundException("Workspace not found")
+    return TenantInfoResponse(slug=org.slug, name=org.name)
+
+
+@router.post("/workspaces", response_model=WorkspaceLookupResponse)
+async def lookup_workspaces(
+    body: WorkspaceLookupRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    ip = _client_ip(request)
+    email = body.email
+    retry_after = await login_rate_limiter.check_locked(ip, email)
+    if retry_after:
+        raise TooManyRequestsException(
+            detail="Too many login attempts. Please try again later.",
+            retry_after=retry_after,
+        )
+    hit = await workspace_lookup_rate_limiter.hit(f"{ip}:{email}")
+    if hit:
+        raise TooManyRequestsException(
+            detail="Too many requests. Please try again later.",
+            retry_after=hit,
+        )
+    result = await db.execute(
+        select(Organization)
+        .join(User, User.organization_id == Organization.id)
+        .where(User.email == email)
+        .where(User.is_active.is_(True))
+        .where(Organization.deleted_at.is_(None))
+        .where(Organization.status.in_(_USABLE_WORKSPACE_STATUSES))
+    )
+    orgs = list(result.scalars().unique().all())
+    return WorkspaceLookupResponse(
+        items=[WorkspaceItem(slug=o.slug, name=o.name) for o in orgs]
+    )
+
+
 @router.post("/login", response_model=TokenResponse)
 async def login(
     body: LoginRequest,
@@ -363,7 +444,20 @@ async def login(
         )
 
     try:
-        user = await _resolve_login_user(db, email, body.organization_slug)
+        bound = bound_organization_slug(request)
+        if not bound and tenant_host_enforced():
+            raise ForbiddenException("Sign in at your workspace URL.")
+        slug = body.organization_slug
+        if bound:
+            client_slug = (slug or "").strip().lower()
+            if client_slug and client_slug != bound:
+                raise ForbiddenException(
+                    "This workspace belongs to a different organization."
+                )
+            slug = bound
+        user = await _resolve_login_user(db, email, slug)
+    except ForbiddenException:
+        raise
     except BadRequestException:
         # Ambiguous email is not a failed password attempt; surface immediately
         raise

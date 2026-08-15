@@ -1,10 +1,28 @@
 # HTTP: serve ACME challenge, redirect everything else to HTTPS.
 # No HSTS here — certs may not exist yet on first boot / renewals.
-# Templated vars (envsubst via NGINX_ENVSUBST_FILTER): NGINX_SERVER_NAMES, TLS_CERT_NAME.
+# Templated vars (envsubst via NGINX_ENVSUBST_FILTER): NGINX_SERVER_NAMES,
+# NGINX_PLATFORM_SERVER_NAMES, NGINX_LEGACY_REDIRECT_NAMES,
+# NGINX_CANONICAL_APP_ORIGIN, TLS_CERT_NAME.
 # Nginx runtime vars ($host, $uri, …) are intentionally left unsubstituted.
+
+# Legacy VC/bookmark host(s): never serve the SPA here. ACME stays so the
+# name can remain on the certificate; everything else 301s to the canonical app.
 server {
     listen 8080;
-    server_name ${NGINX_SERVER_NAMES};
+    server_name ${NGINX_LEGACY_REDIRECT_NAMES};
+
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 ${NGINX_CANONICAL_APP_ORIGIN}$request_uri;
+    }
+}
+
+server {
+    listen 8080;
+    server_name ${NGINX_SERVER_NAMES} ${NGINX_PLATFORM_SERVER_NAMES};
 
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
@@ -12,6 +30,23 @@ server {
 
     location / {
         return 301 https://$host$request_uri;
+    }
+}
+
+# HTTPS: legacy host(s) — same cert lineage, no SPA/API.
+server {
+    listen 8443 ssl;
+    http2 on;
+    server_name ${NGINX_LEGACY_REDIRECT_NAMES};
+
+    ssl_certificate     /etc/letsencrypt/live/${TLS_CERT_NAME}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${TLS_CERT_NAME}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+
+    location / {
+        return 301 ${NGINX_CANONICAL_APP_ORIGIN}$request_uri;
     }
 }
 
@@ -69,5 +104,55 @@ server {
     # SPA fallback
     location / {
         try_files $uri $uri/ /index.html;
+    }
+}
+
+# HTTPS: platform operator console (dev equivalent: the frontend-admin service on
+# :5174). Served from its own root so the tenant SPA is never reachable here.
+# Listed after the tenant block, which stays the default server for unmatched SNI.
+# Reuses TLS_CERT_NAME — add the platform host as a SAN on that certificate.
+server {
+    listen 8443 ssl;
+    http2 on;
+    server_name ${NGINX_PLATFORM_SERVER_NAMES};
+
+    ssl_certificate     /etc/letsencrypt/live/${TLS_CERT_NAME}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${TLS_CERT_NAME}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    ssl_prefer_server_ciphers on;
+
+    # add_header is not inherited across server blocks — repeat the tenant set.
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; media-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests" always;
+
+    root /usr/share/nginx/html-admin;
+    index admin.html;
+
+    location /api/ {
+        proxy_pass http://backend:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+
+    location = /docs { return 404; }
+    location = /openapi.json { return 404; }
+    location = /redoc { return 404; }
+    location /redoc { return 404; }
+
+    location /assets/ {
+        expires 30d;
+        try_files $uri =404;
+    }
+
+    # SPA fallback — admin.html, not index.html (which is the tenant entry)
+    location / {
+        try_files $uri $uri/ /admin.html;
     }
 }

@@ -14,6 +14,7 @@ from app.database import async_session_factory
 from app.models.organization import Organization, OrganizationStatus
 from app.models.user import User
 from app.exceptions import UnauthorizedException, ForbiddenException
+from app.services.host_tenant import bound_organization_slug, tenant_host_enforced
 
 logger = logging.getLogger(__name__)
 security = HTTPBearer()
@@ -131,6 +132,16 @@ async def get_current_user(
         user.organization,
         for_write=_request_is_write(request),
     )
+
+    bound = bound_organization_slug(request)
+    if bound:
+        org_slug = user.organization.slug if user.organization is not None else None
+        if org_slug != bound:
+            raise ForbiddenException(
+                "This request does not match the workspace host."
+            )
+    elif tenant_host_enforced():
+        raise ForbiddenException("Sign in at your workspace URL.")
 
     if user.must_change_password:
         path = request.url.path.rstrip("/")

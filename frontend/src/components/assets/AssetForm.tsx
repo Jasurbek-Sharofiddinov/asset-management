@@ -28,7 +28,10 @@ const makeAssetSchema = (t: (key: TranslationKey) => string) =>
     warranty_expiry: z.string().optional(),
   })
 
-type AssetFormData = z.infer<ReturnType<typeof makeAssetSchema>>
+// Raw field values (inputs are strings) differ from the parsed output because
+// purchase_price is coerced/transformed.
+type AssetFormValues = z.input<ReturnType<typeof makeAssetSchema>>
+type AssetFormData = z.output<ReturnType<typeof makeAssetSchema>>
 
 interface AssetFormProps {
   isOpen: boolean
@@ -62,9 +65,8 @@ export function AssetForm({ isOpen, onClose, asset }: AssetFormProps) {
     setValue,
     watch,
     formState: { errors },
-  } = useForm({
-    resolver: (values, context, options) =>
-      zodResolver(assetSchema)(values, context, options) as any,
+  } = useForm<AssetFormValues, unknown, AssetFormData>({
+    resolver: zodResolver(assetSchema),
     defaultValues: asset
       ? {
           name: asset.name,
@@ -117,7 +119,7 @@ export function AssetForm({ isOpen, onClose, asset }: AssetFormProps) {
     const upper = aiSuggestion.category.toUpperCase()
     const validCats = categoryOptions.map(c => c.value)
     if (validCats.includes(upper)) {
-      setValue('category', upper as AssetFormData['category'], { shouldValidate: true })
+      setValue('category', upper as AssetFormValues['category'], { shouldValidate: true })
     }
     setAiSuggestion(null)
   }
@@ -171,7 +173,7 @@ export function AssetForm({ isOpen, onClose, asset }: AssetFormProps) {
       title={asset ? t('form.editAsset') : t('form.addAsset')}
       size="md"
     >
-      <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Step Indicators */}
         <div className="flex items-center gap-3 mb-6">
           <button

@@ -12,6 +12,7 @@ import {
   suspendOrganization,
 } from '../lib/api'
 import { formatDate, StatusBadge } from '../components/ConsoleLayout'
+import { tenantOrigin } from '../../lib/config'
 
 function Field({ label, value }: { label: string; value?: string | null }) {
   return (
@@ -190,6 +191,7 @@ export default function OrgDetailPage() {
 
       <dl className="grid sm:grid-cols-2 gap-6 border border-line rounded-lg bg-white p-6">
         <Field label="Slug" value={org.slug} />
+        <Field label="Workspace URL" value={tenantOrigin(org.slug)} />
         <Field label="Contact email" value={org.contact_email} />
         <Field label="Contact phone" value={org.contact_phone} />
         <Field label="Website" value={org.website} />
@@ -226,6 +228,7 @@ export default function OrgDetailPage() {
           </p>
           <p className="text-[12px] text-body">
             Initial login password for the org admin. Shown once; not stored in plaintext.
+            Workspace: <span className="font-mono">{tenantOrigin(org.slug)}/login</span>
           </p>
           <code
             className="block mt-2 p-3 bg-white border border-line rounded text-[13px] break-all"
@@ -240,8 +243,9 @@ export default function OrgDetailPage() {
         <div className="border border-ok rounded-lg bg-ok-soft p-5">
           <p className="text-[14px] font-medium text-ok">Organization activated</p>
           <p className="mt-1 text-[13px] text-body">
-            The applicant already set a password at signup. They can sign in with that
-            password now — no invite token to hand over.
+            The applicant already set a password at signup. They can sign in at{' '}
+            <span className="font-mono">{tenantOrigin(org.slug)}/login</span>
+            {' '}with that password now — no invite token to hand over.
           </p>
         </div>
       )}
