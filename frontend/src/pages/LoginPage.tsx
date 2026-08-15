@@ -4,6 +4,7 @@ import { Eye, EyeOff, ArrowRight, Check } from 'lucide-react'
 import { useAuthStore } from '../stores/authStore'
 import { useLanguageStore } from '../stores/languageStore'
 import { cn } from '../lib/utils'
+import { APP_HOST, TRIAL_LENGTH_DAYS } from '../lib/config'
 import type { Locale } from '../i18n/translations'
 
 const locales: { code: Locale; label: string }[] = [
@@ -29,22 +30,24 @@ export default function LoginPage() {
   const { t, locale, setLocale } = useLanguageStore()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [organizationSlug, setOrganizationSlug] = useState('')
+  const [showSlug, setShowSlug] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     clearError()
     try {
-      await login(email, password)
-      navigate('/dashboard')
-    } catch {
-      // Error handled in store
+      await login(email, password, organizationSlug.trim() || undefined)
+      const mustChange = useAuthStore.getState().user?.must_change_password
+      navigate(mustChange ? '/change-password' : '/dashboard')
+    } catch (err: any) {
+      const detail = err?.response?.data?.detail
+      const message = typeof detail === 'string' ? detail : ''
+      if (message.includes('organization_slug')) {
+        setShowSlug(true)
+      }
     }
-  }
-
-  const fillDemo = () => {
-    setEmail('admin@assetvault.uz')
-    setPassword('Vault@2024')
   }
 
   return (
@@ -58,14 +61,17 @@ export default function LoginPage() {
 
         <div className="max-w-sm">
           <h2 className="font-serif text-[38px] leading-[1.08] tracking-[-0.02em]">
-            Every asset,<br />accounted for.
+            {t('login.headline')}
           </h2>
           <p className="mt-4 text-[14px] leading-relaxed text-white/65">
-            One system of record for equipment across every location — with role-based access
-            and a tamper-proof audit trail.
+            {t('login.leftBody')}
           </p>
           <ul className="mt-8 space-y-3">
-            {['Role-based access control', 'Append-only audit trail', 'QR tracking on every asset'].map((f) => (
+            {([
+              t('login.feature1'),
+              t('login.feature2'),
+              t('login.feature3'),
+            ] as const).map((f) => (
               <li key={f} className="flex items-center gap-3 text-[13.5px] text-white/80">
                 <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center">
                   <Check className="w-3 h-3" />
@@ -76,7 +82,7 @@ export default function LoginPage() {
           </ul>
         </div>
 
-        <p className="text-[12px] text-white/40 font-mono">asset.datamou.uz</p>
+        <p className="text-[12px] text-white/40 font-mono">{APP_HOST}</p>
       </aside>
 
       {/* ── Right: form ── */}
@@ -160,35 +166,40 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {showSlug && (
+              <div>
+                <label htmlFor="organization-slug" className="block text-[13px] font-medium text-ink mb-1.5">
+                  {t('login.orgSlugLabel')}
+                </label>
+                <input
+                  id="organization-slug"
+                  type="text"
+                  value={organizationSlug}
+                  onChange={(e) => setOrganizationSlug(e.target.value)}
+                  placeholder={t('login.orgSlugPlaceholder')}
+                  autoComplete="organization"
+                  className="w-full px-3.5 py-2.5 bg-white border border-line rounded-lg text-ink text-[14px] placeholder:text-muted/70 focus:outline-none focus:ring-2 focus:ring-brand/15 focus:border-brand/40 transition-shadow"
+                />
+                <p className="mt-1.5 text-[12px] text-muted">{t('login.orgSlugHint')}</p>
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={isLoading}
               className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 text-[14px] font-medium text-white bg-brand rounded-lg hover:bg-brand-hover disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
             >
-              {isLoading ? 'Signing in…' : t('login.signIn')}
+              {isLoading ? t('login.signingIn') : t('login.signIn')}
               {!isLoading && <ArrowRight className="h-4 w-4" />}
             </button>
           </form>
 
-          {/* Demo hint */}
-          <div className="mt-4 flex items-center justify-between gap-3 rounded-lg border border-line bg-white px-3.5 py-2.5">
-            <div className="text-[12px] text-muted leading-tight">
-              <span className="text-body font-medium">Demo</span>
-              <span className="font-mono"> · admin@assetvault.uz</span>
-            </div>
-            <button
-              onClick={fillDemo}
-              className="shrink-0 text-[12px] font-medium text-brand hover:text-brand-hover transition-colors"
-            >
-              Use demo
-            </button>
-          </div>
-
           <p className="mt-6 text-center text-[13px] text-body">
-            {t('login.noAccount')}{' '}
-            <Link to="/register" className="text-brand font-medium hover:text-brand-hover transition-colors">
-              {t('login.register')}
+            {t('login.needAccount')}{' '}
+            <Link to="/signup" className="text-brand font-medium hover:underline">
+              {t('login.requestTrial').replace('{days}', String(TRIAL_LENGTH_DAYS))}
             </Link>
+            .
           </p>
         </div>
       </main>

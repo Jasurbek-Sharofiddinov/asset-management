@@ -10,22 +10,25 @@ import { Select } from '../ui/Select'
 import { Button } from '../ui/Button'
 import { useToast } from '../ui/Toast'
 import { assetsApi, aiApi } from '../../lib/api'
+import { useLanguageStore } from '../../stores/languageStore'
 import type { Asset } from '../../types'
+import type { TranslationKey } from '../../i18n/translations'
 
-const assetSchema = z.object({
-  name: z.string().min(1, 'Name is required').max(200),
-  asset_type: z.string().min(1, 'Type is required'),
-  serial_number: z.string().min(1, 'Serial number is required'),
-  category: z.enum(['IT', 'OFFICE', 'SECURITY', 'NETWORKING', 'PRINTING', 'SERVER', 'MOBILE', 'FURNITURE', 'OTHER']),
-  brand: z.string().optional(),
-  model: z.string().optional(),
-  description: z.string().optional(),
-  purchase_date: z.string().optional(),
-  purchase_price: z.union([z.coerce.number().min(0), z.literal('').transform(() => undefined)]).optional(),
-  warranty_expiry: z.string().optional(),
-})
+const makeAssetSchema = (t: (key: TranslationKey) => string) =>
+  z.object({
+    name: z.string().min(1, t('form.nameRequired')).max(200),
+    asset_type: z.string().min(1, t('form.typeRequired')),
+    serial_number: z.string().min(1, t('form.serialRequired')),
+    category: z.enum(['IT', 'OFFICE', 'SECURITY', 'NETWORKING', 'PRINTING', 'SERVER', 'MOBILE', 'FURNITURE', 'OTHER']),
+    brand: z.string().optional(),
+    model: z.string().optional(),
+    description: z.string().optional(),
+    purchase_date: z.string().optional(),
+    purchase_price: z.union([z.coerce.number().min(0), z.literal('').transform(() => undefined)]).optional(),
+    warranty_expiry: z.string().optional(),
+  })
 
-type AssetFormData = z.infer<typeof assetSchema>
+type AssetFormData = z.infer<ReturnType<typeof makeAssetSchema>>
 
 interface AssetFormProps {
   isOpen: boolean
@@ -49,6 +52,8 @@ export function AssetForm({ isOpen, onClose, asset }: AssetFormProps) {
   const [step, setStep] = useState(1)
   const queryClient = useQueryClient()
   const toast = useToast()
+  const { t } = useLanguageStore()
+  const assetSchema = makeAssetSchema(t)
 
   const {
     register,
@@ -58,7 +63,8 @@ export function AssetForm({ isOpen, onClose, asset }: AssetFormProps) {
     watch,
     formState: { errors },
   } = useForm({
-    resolver: zodResolver(assetSchema) as any,
+    resolver: (values, context, options) =>
+      zodResolver(assetSchema)(values, context, options) as any,
     defaultValues: asset
       ? {
           name: asset.name,
@@ -120,11 +126,11 @@ export function AssetForm({ isOpen, onClose, asset }: AssetFormProps) {
     mutationFn: (data: AssetFormData) => assetsApi.createAsset(data as any),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assets'] })
-      toast.success('Asset created successfully')
+      toast.success(t('form.created'))
       handleClose()
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.detail || 'Failed to create asset')
+      toast.error(err.response?.data?.detail || t('form.createFailed'))
     },
   })
 
@@ -133,11 +139,11 @@ export function AssetForm({ isOpen, onClose, asset }: AssetFormProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['assets'] })
       queryClient.invalidateQueries({ queryKey: ['asset', asset?.id] })
-      toast.success('Asset updated successfully')
+      toast.success(t('form.updated'))
       handleClose()
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.detail || 'Failed to update asset')
+      toast.error(err.response?.data?.detail || t('form.updateFailed'))
     },
   })
 
@@ -162,7 +168,7 @@ export function AssetForm({ isOpen, onClose, asset }: AssetFormProps) {
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title={asset ? 'Edit Asset' : 'Add New Asset'}
+      title={asset ? t('form.editAsset') : t('form.addAsset')}
       size="md"
     >
       <form onSubmit={handleSubmit(onSubmit as any)} className="space-y-6">
@@ -203,26 +209,26 @@ export function AssetForm({ isOpen, onClose, asset }: AssetFormProps) {
         {step === 1 && (
           <div className="space-y-4">
             <Input
-              label="Asset Name"
+              label={t('form.assetName')}
               placeholder="e.g., Dell Monitor 27inch"
               error={errors.name?.message}
               {...register('name')}
             />
             <Input
-              label="Asset Type"
+              label={t('form.assetType')}
               placeholder="e.g., Monitor, Laptop, Desk"
               error={errors.asset_type?.message}
               {...register('asset_type')}
             />
             <Input
-              label="Serial Number"
+              label={t('form.serialNumber')}
               placeholder="e.g., SN-2024-001"
               error={errors.serial_number?.message}
               className="font-mono text-[13px]"
               {...register('serial_number')}
             />
             <Select
-              label="Category"
+              label={t('form.category')}
               options={categoryOptions}
               error={errors.category?.message}
               {...register('category')}
@@ -243,12 +249,12 @@ export function AssetForm({ isOpen, onClose, asset }: AssetFormProps) {
             )}
             <div className="grid grid-cols-2 gap-4">
               <Input
-                label="Brand"
+                label={t('form.brand')}
                 placeholder="e.g., Dell"
                 {...register('brand')}
               />
               <Input
-                label="Model"
+                label={t('form.model')}
                 placeholder="e.g., U2723QE"
                 {...register('model')}
               />
@@ -256,7 +262,7 @@ export function AssetForm({ isOpen, onClose, asset }: AssetFormProps) {
 
             <div className="flex justify-end pt-2">
               <Button type="button" onClick={() => setStep(2)}>
-                Next
+                {t('form.next')}
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
@@ -267,12 +273,12 @@ export function AssetForm({ isOpen, onClose, asset }: AssetFormProps) {
         {step === 2 && (
           <div className="space-y-4">
             <Input
-              label="Purchase Date"
+              label={t('form.purchaseDate')}
               type="date"
               {...register('purchase_date')}
             />
             <Input
-              label="Purchase Price"
+              label={t('form.purchasePrice')}
               type="number"
               step="0.01"
               placeholder="0.00"
@@ -280,16 +286,16 @@ export function AssetForm({ isOpen, onClose, asset }: AssetFormProps) {
               {...register('purchase_price')}
             />
             <Input
-              label="Warranty Expiry"
+              label={t('form.warrantyExpiry')}
               type="date"
               {...register('warranty_expiry')}
             />
             <div>
               <label className="block text-sm font-medium text-vault-text mb-1.5">
-                Description
+                {t('form.description')}
               </label>
               <textarea
-                placeholder="Optional description..."
+                placeholder={t('form.descriptionPlaceholder')}
                 rows={3}
                 className="w-full px-3 py-2 bg-vault-surface border border-vault-border rounded-lg text-vault-text text-sm placeholder:text-vault-muted-text/50 focus:outline-none focus:ring-2 focus:ring-vault-amber/20 focus:border-vault-border-focus transition-all resize-none"
                 {...register('description')}
@@ -299,10 +305,10 @@ export function AssetForm({ isOpen, onClose, asset }: AssetFormProps) {
             <div className="flex justify-between pt-2">
               <Button type="button" variant="ghost" onClick={() => setStep(1)}>
                 <ChevronLeft className="h-4 w-4" />
-                Back
+                {t('common.back')}
               </Button>
               <Button type="submit" isLoading={isSubmitting}>
-                {asset ? 'Update Asset' : 'Create Asset'}
+                {asset ? t('form.updateAsset') : t('form.createAsset')}
               </Button>
             </div>
           </div>

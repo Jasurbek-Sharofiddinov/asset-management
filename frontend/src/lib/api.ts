@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { CanceledError } from 'axios'
 import type {
   Asset,
   AssetCreate,
@@ -18,6 +18,8 @@ import type {
   Branch,
   PaginatedResponse,
   LoginResponse,
+  User,
+  UserRole,
 } from '../types'
 
 const api = axios.create({
@@ -27,10 +29,74 @@ const api = axios.create({
   },
 })
 
+const TOKEN_KEY = 'token'
+const REFRESH_TOKEN_KEY = 'refresh_token'
+const USER_KEY = 'user'
+
+// Shared by every 401 so parallel queries trigger a single refresh.
+let refreshPromise: Promise<string | null> | null = null
+// Latched once the session is unrecoverable, so queued requests fail fast
+// instead of each one re-attempting a refresh and re-triggering a redirect.
+let sessionEnded = false
+
+export function clearStoredAuth() {
+  localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(REFRESH_TOKEN_KEY)
+  localStorage.removeItem(USER_KEY)
+}
+
+let onSessionEnded: (() => void) | null = null
+
+export function setSessionEndedHandler(handler: () => void) {
+  onSessionEnded = handler
+}
+
+function endSession() {
+  clearStoredAuth()
+  if (sessionEnded) return
+  sessionEnded = true
+  onSessionEnded?.()
+  if (window.location.pathname !== '/login') {
+    window.location.replace('/login')
+  }
+}
+
+// A token the backend can never accept is worth dropping before the first
+// render fans out queries. Structure only — the backend verifies signatures.
+function isStructurallyValidJwt(token: string): boolean {
+  const parts = token.split('.')
+  return parts.length === 3 && parts.every((part) => part.length > 0)
+}
+
+const storedToken = localStorage.getItem(TOKEN_KEY)
+if (storedToken !== null && !isStructurallyValidJwt(storedToken)) {
+  clearStoredAuth()
+}
+
+async function refreshAccessToken(): Promise<string | null> {
+  const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY)
+  if (!refreshToken || !isStructurallyValidJwt(refreshToken)) {
+    return null
+  }
+  try {
+    const { data } = await axios.post<LoginResponse>('/api/auth/refresh', {
+      refresh_token: refreshToken,
+    })
+    localStorage.setItem(TOKEN_KEY, data.access_token)
+    localStorage.setItem(REFRESH_TOKEN_KEY, data.refresh_token)
+    return data.access_token
+  } catch {
+    return null
+  }
+}
+
 // Request interceptor: attach Authorization Bearer token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token')
+    if (sessionEnded) {
+      return Promise.reject(new CanceledError('Session ended'))
+    }
+    const token = localStorage.getItem(TOKEN_KEY)
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -39,40 +105,116 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// Response interceptor: handle 401
+// Response interceptor: one refresh attempt per 401, then end the session
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login'
-      }
+  async (error) => {
+    const original = error.config
+    const url = String(original?.url || '')
+    // A 401 from these endpoints means the credentials themselves are bad;
+    // refreshing cannot help and would recurse.
+    const isAuthEndpoint =
+      url.includes('/api/auth/login') ||
+      url.includes('/api/auth/refresh') ||
+      url.includes('/api/auth/logout')
+
+    if (
+      error.response?.status !== 401 ||
+      !original ||
+      original._retry ||
+      isAuthEndpoint ||
+      sessionEnded
+    ) {
+      return Promise.reject(error)
     }
-    return Promise.reject(error)
+
+    original._retry = true
+    if (!refreshPromise) {
+      refreshPromise = refreshAccessToken().finally(() => {
+        refreshPromise = null
+      })
+    }
+    const newToken = await refreshPromise
+    if (!newToken) {
+      endSession()
+      return Promise.reject(error)
+    }
+    original.headers = original.headers || {}
+    original.headers.Authorization = `Bearer ${newToken}`
+    return api(original)
   }
 )
 
 // === Auth ===
 export const authApi = {
-  login: async (email: string, password: string): Promise<LoginResponse> => {
-    const { data } = await api.post('/api/auth/login', { email, password })
+  login: async (
+    email: string,
+    password: string,
+    organization_slug?: string,
+  ): Promise<LoginResponse> => {
+    const { data } = await api.post('/api/auth/login', {
+      email,
+      password,
+      ...(organization_slug ? { organization_slug } : {}),
+    })
     return data
   },
-  refresh: async (): Promise<LoginResponse> => {
-    const { data } = await api.post('/api/auth/refresh')
+  refresh: async (refresh_token: string): Promise<LoginResponse> => {
+    const { data } = await api.post('/api/auth/refresh', { refresh_token })
     return data
   },
-  logout: async (): Promise<void> => {
-    await api.post('/api/auth/logout')
+  logout: async (refresh_token?: string | null): Promise<void> => {
+    await api.post('/api/auth/logout', { refresh_token: refresh_token || null })
   },
   me: async () => {
     const { data } = await api.get('/api/auth/me')
     return data
   },
-  register: async (full_name: string, email: string, password: string): Promise<LoginResponse> => {
-    const { data } = await api.post('/api/auth/register', { full_name, email, password })
+  listUsers: async (): Promise<User[]> => {
+    const { data } = await api.get('/api/auth/users')
+    return data
+  },
+  createUser: async (payload: {
+    full_name: string
+    email: string
+    password: string
+    role: UserRole
+  }) => {
+    const { data } = await api.post('/api/auth/users', payload)
+    return data
+  },
+  updateUser: async (
+    id: string,
+    payload: { full_name?: string; role?: UserRole; is_active?: boolean },
+  ): Promise<User> => {
+    const { data } = await api.patch(`/api/auth/users/${id}`, payload)
+    return data
+  },
+  resetUserPassword: async (id: string, password: string): Promise<User> => {
+    const { data } = await api.post(`/api/auth/users/${id}/reset-password`, {
+      password,
+    })
+    return data
+  },
+  changePassword: async (current_password: string, new_password: string) => {
+    const { data } = await api.post('/api/auth/change-password', {
+      current_password,
+      new_password,
+    })
+    return data
+  },
+  signup: async (payload: {
+    organization_name: string
+    contact_email: string
+    admin_full_name: string
+    password: string
+    contact_phone?: string
+    website?: string
+    country?: string
+    institution_type?: string
+    use_case?: string
+  }): Promise<{ detail: string }> => {
+    const { data } = await api.post('/api/auth/signup', payload)
     return data
   },
 }
@@ -82,8 +224,8 @@ export interface AssetParams {
   page?: number
   size?: number
   search?: string
-  status?: string
-  category?: string
+  status?: string | string[]
+  category?: string | string[]
   branch_id?: string
   sort_by?: string
   sort_order?: 'asc' | 'desc'
@@ -91,7 +233,10 @@ export interface AssetParams {
 
 export const assetsApi = {
   getAssets: async (params?: AssetParams): Promise<PaginatedResponse<Asset>> => {
-    const { data } = await api.get('/api/assets', { params })
+    const { data } = await api.get('/api/assets', {
+      params,
+      paramsSerializer: { indexes: null },
+    })
     return data
   },
   getAsset: async (id: string): Promise<Asset> => {
@@ -113,8 +258,8 @@ export const assetsApi = {
     const { data } = await api.patch(`/api/assets/${id}/status`, { new_status, reason })
     return data
   },
-  getAssetQR: async (id: string): Promise<string> => {
-    const { data } = await api.get(`/api/assets/${id}/qr`)
+  getAssetQR: async (id: string): Promise<Blob> => {
+    const { data } = await api.get(`/api/assets/${id}/qr`, { responseType: 'blob' })
     return data
   },
   getAssetHistory: async (id: string): Promise<any[]> => {

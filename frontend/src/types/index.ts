@@ -4,14 +4,38 @@ export type AssetCategory = 'IT' | 'OFFICE' | 'SECURITY' | 'NETWORKING' | 'PRINT
 export type UserRole = 'ADMIN' | 'MANAGER' | 'AUDITOR' | 'VIEWER'
 export type AuditAction = string
 
-// Core Models
+// Auth
+export interface OrganizationBrief {
+  id: string
+  name: string
+  slug: string
+  status: string
+  plan: string
+  trial_ends_at?: string | null
+}
+
 export interface User {
   id: string
   email: string
   full_name: string
   role: UserRole
   is_active: boolean
+  must_change_password?: boolean
+  last_login?: string | null
   created_at?: string
+  organization_id?: string
+  organization?: OrganizationBrief | null
+}
+
+export interface LoginResponse {
+  access_token: string
+  refresh_token: string
+  token_type: string
+  role: UserRole
+  user_id: string
+  full_name: string
+  email: string
+  must_change_password: boolean
 }
 
 export interface Asset {
@@ -198,14 +222,4 @@ export interface WarrantyExpiring {
   serial_number: string
   warranty_expiry: string
   days_remaining: number
-}
-
-// Auth
-export interface LoginResponse {
-  access_token: string
-  refresh_token: string
-  token_type: string
-  role: UserRole
-  user_id: string
-  full_name: string
 }

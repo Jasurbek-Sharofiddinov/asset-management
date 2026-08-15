@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { Lightbulb, Check, ChevronDown, ChevronRight, Bell, AlertTriangle } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
+import { APP_ORIGIN } from '../../lib/config'
 
 const CARD =
   'rounded-xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_24px_48px_-24px_rgba(16,24,40,0.18)]'
@@ -212,7 +213,7 @@ export function QRScanDemo() {
     <div className={`${CARD} p-5 w-full max-w-sm`}>
       <div className="text-[13px] font-semibold text-ink mb-4">Scan asset QR</div>
       <div className="relative aspect-[4/3] rounded-lg bg-paper border border-line overflow-hidden flex items-center justify-center">
-        <QRCodeSVG value="https://asset.datamou.uz" size={92} bgColor="#F6F7F9" fgColor="#17233D" level="M" />
+        <QRCodeSVG value={APP_ORIGIN} size={92} bgColor="#F6F7F9" fgColor="#17233D" level="M" />
         {!reduce && !found && (
           <motion.div className="absolute left-5 right-5 h-[2px] rounded bg-brand/70"
             initial={{ top: '20%' }} animate={{ top: ['20%', '80%', '20%'] }}

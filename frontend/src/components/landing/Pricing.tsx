@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Check } from 'lucide-react'
+import {
+  SALES_PHONE, SALES_PHONE_HREF, SALES_TELEGRAM_HANDLE, SALES_TELEGRAM_URL, TRIAL_LENGTH_DAYS,
+} from '../../lib/config'
 
 type Tier = {
   name: string
@@ -9,41 +12,36 @@ type Tier = {
   blurb: string
   cta: string
   to: string
+  ctaLabel?: string
   external?: boolean
   popular?: boolean
   custom?: boolean
-  free?: boolean
   features: string[]
 }
 
+// Paid plans only — matches OrganizationPlan (starter / business / enterprise).
+// Trial is organization status=trialing, not a permanent free tier.
 const TIERS: Tier[] = [
-  {
-    name: 'Free',
-    priceM: '0', priceY: '0', free: true,
-    blurb: 'For trying it out or a single small office.',
-    cta: 'Start free', to: '/register',
-    features: ['Up to 50 assets', '2 team members', '1 location', 'QR codes & scanning', 'Basic dashboard'],
-  },
   {
     name: 'Starter',
     priceM: '99 000', priceY: '990 000',
     blurb: 'For growing teams that need the full workflow.',
-    cta: 'Choose Starter', to: '/register',
+    cta: 'Start a trial', ctaLabel: 'Start a trial on Starter', to: '/signup',
     features: ['Up to 500 assets', '10 team members', 'Up to 5 locations', 'Full audit log + CSV export', 'Analytics dashboards', 'Email support'],
   },
   {
     name: 'Business',
     priceM: '299 000', priceY: '2 990 000', popular: true,
     blurb: 'For organizations running assets across many sites.',
-    cta: 'Choose Business', to: '/register',
+    cta: 'Start a trial', ctaLabel: 'Start a trial on Business', to: '/signup',
     features: ['Up to 5,000 assets', 'Unlimited team members', 'Unlimited locations', 'AI insights & predictions', 'Warranty alerts', 'Priority support', 'API access'],
   },
   {
     name: 'Enterprise',
     priceM: 'Custom', priceY: 'Custom', custom: true,
-    blurb: 'For large deployments with security & SLA needs.',
-    cta: 'Contact sales', to: 'https://t.me/jasurbeksharofiddinov', external: true,
-    features: ['Unlimited assets', 'SSO & advanced roles', 'On-premise option', 'Dedicated manager + SLA', 'Custom integrations'],
+    blurb: 'Dedicated or on-prem deployment with security & SLA needs.',
+    cta: 'Contact sales', to: SALES_TELEGRAM_URL, external: true,
+    features: ['Unlimited assets', 'SSO & advanced roles', 'On-premise / dedicated deployment', 'Dedicated manager + SLA', 'Custom integrations'],
   },
 ]
 
@@ -59,20 +57,26 @@ export function Pricing() {
             Simple pricing, built for local teams.
           </h2>
           <p className="mt-4 text-[15px] leading-relaxed text-body">
-            Prices in Uzbek so‘m. Start free, upgrade when you grow. No setup fees, cancel anytime.
+            Prices in Uzbek so‘m. Every plan starts with a {TRIAL_LENGTH_DAYS}-day trial —
+            then choose Starter, Business, or Enterprise. There is no permanent free plan.
+            No setup fees, cancel anytime.
           </p>
         </div>
 
         {/* Billing toggle */}
-        <div className="inline-flex items-center gap-1 p-1 rounded-lg border border-line bg-white mb-10">
+        <div role="group" aria-label="Billing period" className="inline-flex items-center gap-1 p-1 rounded-lg border border-line bg-white mb-10">
           <button
+            type="button"
             onClick={() => setAnnual(false)}
+            aria-pressed={!annual}
             className={`px-4 py-1.5 text-[13px] font-medium rounded-md transition-colors ${!annual ? 'bg-brand text-white' : 'text-body hover:text-ink'}`}
           >
             Monthly
           </button>
           <button
+            type="button"
             onClick={() => setAnnual(true)}
+            aria-pressed={annual}
             className={`px-4 py-1.5 text-[13px] font-medium rounded-md transition-colors inline-flex items-center gap-2 ${annual ? 'bg-brand text-white' : 'text-body hover:text-ink'}`}
           >
             Annual
@@ -80,10 +84,10 @@ export function Pricing() {
           </button>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 items-stretch">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 items-stretch">
           {TIERS.map((t) => {
-            const price = t.custom ? 'Custom' : t.free ? 'Free' : annual ? t.priceY : t.priceM
-            const unit = t.custom || t.free ? '' : annual ? '/year' : '/month'
+            const price = t.custom ? 'Custom' : annual ? t.priceY : t.priceM
+            const unit = t.custom ? '' : annual ? '/year' : '/month'
             return (
               <div
                 key={t.name}
@@ -98,10 +102,10 @@ export function Pricing() {
 
                 <div className="mt-3 flex items-baseline gap-1.5 flex-wrap">
                   <span className="text-[26px] font-semibold text-ink font-mono tracking-tight">{price}</span>
-                  {!t.custom && !t.free && <span className="text-[13px] text-muted">so‘m</span>}
+                  {!t.custom && <span className="text-[13px] text-muted">so‘m</span>}
                   {unit && <span className="text-[12px] text-muted">{unit}</span>}
                 </div>
-                {annual && !t.custom && !t.free && (
+                {annual && !t.custom && (
                   <p className="mt-1 text-[11px] text-ok">2 months free</p>
                 )}
 
@@ -112,6 +116,7 @@ export function Pricing() {
                     href={t.to}
                     target="_blank"
                     rel="noreferrer"
+                    aria-label={t.ctaLabel ?? `${t.cta} about ${t.name}`}
                     className={`mt-5 inline-flex items-center justify-center px-4 py-2.5 text-[13px] font-medium rounded-lg transition-colors ${t.popular ? 'bg-brand text-white hover:bg-brand-hover' : 'border border-line text-ink hover:border-brand/40'}`}
                   >
                     {t.cta}
@@ -141,11 +146,13 @@ export function Pricing() {
         </div>
 
         <p className="mt-8 text-[12px] text-muted">
-          All plans include QR tracking, the append-only audit trail, and role-based access.
-          Prices exclude VAT. Questions? Message{' '}
-          <a href="https://t.me/jasurbeksharofiddinov" target="_blank" rel="noreferrer" className="text-brand font-medium hover:text-brand-hover">@jasurbeksharofiddinov</a>{' '}
+          All plans include a {TRIAL_LENGTH_DAYS}-day trial, QR tracking, the append-only audit trail, and role-based access.
+          Prices exclude VAT. Apply online and we activate after a short review. Existing customers can{' '}
+          <Link to="/login" className="text-brand font-medium hover:text-brand-hover">sign in</Link>
+          {' '}and Enterprise buyers can message{' '}
+          <a href={SALES_TELEGRAM_URL} target="_blank" rel="noreferrer" className="text-brand font-medium hover:text-brand-hover">{SALES_TELEGRAM_HANDLE}</a>{' '}
           on Telegram or call{' '}
-          <a href="tel:+998999948959" className="text-brand font-medium hover:text-brand-hover">+998 99 994 89 59</a>.
+          <a href={SALES_PHONE_HREF} className="text-brand font-medium hover:text-brand-hover">{SALES_PHONE}</a>.
         </p>
       </div>
     </section>

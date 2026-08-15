@@ -22,6 +22,7 @@ import { PageLoader } from '../components/ui/LoadingSpinner'
 import { formatCurrency, formatDateTime } from '../lib/utils'
 import { useState } from 'react'
 import { useLanguageStore } from '../stores/languageStore'
+import { useAuthStore } from '../stores/authStore'
 
 /* ── Status colors (tuned for light) ── */
 const STATUS_COLORS: Record<string, string> = {
@@ -139,8 +140,11 @@ function CategoryBreakdown({
 
 export default function DashboardPage() {
   const { t } = useLanguageStore()
+  const { user } = useAuthStore()
   const navigate = useNavigate()
   const [selectedBranchId, setSelectedBranchId] = useState<string>('')
+  const canViewAudit = user?.role === 'ADMIN' || user?.role === 'AUDITOR'
+  const canUseAi = user?.role === 'ADMIN' || user?.role === 'MANAGER'
 
   const { data: branches } = useQuery({
     queryKey: ['branches'],
@@ -149,7 +153,14 @@ export default function DashboardPage() {
 
   const branchParams = selectedBranchId ? { branch_id: selectedBranchId } : undefined
   const { data: overview, isLoading } = useQuery({ queryKey: ['analytics', 'overview', selectedBranchId], queryFn: () => analyticsApi.getOverview(branchParams) })
-  const { data: recentAudit } = useQuery({ queryKey: ['audit', 'recent'], queryFn: () => auditApi.getAuditLogs({ page: 1, size: 8 }), refetchInterval: 30000 })
+  const { data: recentAudit } = useQuery({
+    queryKey: ['audit', 'recent'],
+    queryFn: () => auditApi.getAuditLogs({ page: 1, size: 8 }),
+    // Stop polling once it fails (e.g. 403 for a suspended organization)
+    // so a permanent denial does not become a background request loop.
+    refetchInterval: (query) => (query.state.error ? false : 30000),
+    enabled: canViewAudit,
+  })
   const { data: departmentData } = useQuery({ queryKey: ['analytics', 'departments', selectedBranchId], queryFn: () => analyticsApi.getDepartmentAllocation(branchParams) })
   const { data: insights, refetch: refetchInsights, isFetching: insightsFetching } = useQuery({
     queryKey: ['ai', 'insights'],
@@ -295,6 +306,7 @@ export default function DashboardPage() {
       </div>
 
       {/* ── AI Insights ── */}
+      {canUseAi && (
       <Card>
         <CardHeader>
           <CardTitle>
@@ -356,11 +368,13 @@ export default function DashboardPage() {
           </div>
         )}
       </Card>
+      )}
 
       {/* ── Activity + Departments ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className={`grid grid-cols-1 gap-4 ${canViewAudit ? 'lg:grid-cols-2' : ''}`}>
 
         {/* Recent Activity */}
+        {canViewAudit && (
         <div>
           <Card className="h-full">
             <CardHeader>
@@ -386,6 +400,7 @@ export default function DashboardPage() {
             </div>
           </Card>
         </div>
+        )}
 
         {/* Departments */}
         <div>
